@@ -52,10 +52,45 @@
             margin-bottom: 16px;
         }
 
-        .header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+        .app-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
         .icon-badge { background: var(--blue); padding: 8px; border-radius: 12px; line-height: 0; flex-shrink: 0; }
         .icon-badge svg { width: 24px; height: 24px; color: #fff; }
         h1 { font-size: 20px; font-weight: 700; margin: 0; }
+
+        .tabs { display: flex; gap: 8px; margin-bottom: 16px; background: var(--panel); padding: 4px; border-radius: 12px; }
+        .tab-btn {
+            flex: 1; padding: 10px; border: none; background: transparent; color: var(--muted);
+            font-weight: 600; font-size: 14px; border-radius: 9px; cursor: pointer; transition: background-color .15s, color .15s;
+        }
+        .tab-btn.active { background: var(--blue-dark); color: #fff; }
+
+        .text-input, textarea {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            background: var(--field);
+            color: #fff;
+            border: none;
+            outline: none;
+            font-size: 15px;
+            font-family: inherit;
+            margin-bottom: 14px;
+        }
+        .text-input::placeholder, textarea::placeholder { color: #6b7280; }
+        .text-input:focus-visible, textarea:focus-visible { box-shadow: 0 0 0 2px var(--blue); }
+
+        .rating-row { margin-bottom: 18px; }
+        .rating-row:last-child { margin-bottom: 4px; }
+        .rating-row-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
+        .rating-row-header span:first-child { font-size: 14px; font-weight: 600; color: var(--muted-light); }
+        .rating-value { font-size: 13px; font-weight: 700; color: var(--blue-light); }
+        input[type=range].rating-slider::-webkit-slider-thumb { background: var(--blue-light); }
+        input[type=range].rating-slider::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--blue-light) var(--value, 50%), #4b5563 var(--value, 50%)); }
+        input[type=range].rating-slider::-moz-range-progress { background: var(--blue-light); }
+
+        #share-canvas { width: 100%; border-radius: 12px; margin-bottom: 16px; background: var(--bg); }
+        .share-actions { display: flex; gap: 10px; }
+        .btn-secondary { margin-bottom: 0; }
         #ratio-text { font-size: 12px; color: var(--muted); margin: 0; }
 
         .sr-only {
@@ -111,6 +146,41 @@
         .roast-light { background: rgba(250, 204, 21, 0.15); color: #facc15; }
         .roast-medium { background: rgba(251, 146, 60, 0.15); color: #fb923c; }
         .roast-dark { background: rgba(120, 53, 15, 0.35); color: #d97706; }
+        .clicks-ref-wrap { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 2px; }
+        .clicks-ref { font-size: 11px; color: var(--muted-light); font-weight: 500; }
+
+        .clicks-info { position: relative; }
+        .clicks-info summary {
+            list-style: none;
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            background: var(--field);
+            color: var(--muted);
+            border: 1px solid var(--border);
+            font-size: 10px;
+            font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        .clicks-info summary::-webkit-details-marker { display: none; }
+        .clicks-info summary::marker { content: ""; }
+        .clicks-info[open] summary { background: var(--blue); color: #fff; border-color: var(--blue); }
+        .clicks-info .popover {
+            position: absolute;
+            bottom: 22px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #000;
+            color: var(--muted-light);
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            line-height: 1.4;
+            width: 170px;
+            text-align: left;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            z-index: 20;
+        }
 
         .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .field-label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 8px; color: var(--muted); text-align: center; }
@@ -215,17 +285,24 @@
 <body>
     <div class="app">
 
-        <div class="card">
-            <div class="header">
-                <div class="icon-badge">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-                </div>
-                <div>
-                    <h1>BrewCalc</h1>
-                    <p id="ratio-text">Proporção: 1:16.6</p>
-                </div>
+        <div class="app-header">
+            <div class="icon-badge">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
             </div>
+            <div>
+                <h1>BrewCalc</h1>
+                <p id="ratio-text">Proporção: 1:16.6</p>
+            </div>
+        </div>
 
+        <div class="tabs" role="tablist">
+            <button type="button" class="tab-btn active" id="tab-btn-calc" role="tab" aria-selected="true" aria-controls="tab-calc" onclick="switchTab('calc')">Calculadora</button>
+            <button type="button" class="tab-btn" id="tab-btn-review" role="tab" aria-selected="false" aria-controls="tab-review" onclick="switchTab('review')">Avaliação</button>
+        </div>
+
+        <div id="tab-calc" role="tabpanel" aria-labelledby="tab-btn-calc">
+
+        <div class="card">
             <label for="device" class="field-label-inline">Aparelho</label>
             <select id="device" aria-label="Aparelho de preparo" onchange="onDeviceChange()">
                 <option value="v60">V60</option>
@@ -256,6 +333,13 @@
                 <div class="info-col">
                     <span>Moagem</span>
                     <span id="grind-sug">Média-Fina</span>
+                    <div id="grind-clicks-wrap" class="clicks-ref-wrap hidden">
+                        <span id="grind-clicks-num" class="clicks-ref"></span>
+                        <details class="clicks-info">
+                            <summary aria-label="Sobre o moedor de referência">i</summary>
+                            <div class="popover">Cliques de referência calibrados para o moedor <b>Timemore C2</b>. Use como ponto de partida — pode variar conforme o seu moedor.</div>
+                        </details>
+                    </div>
                 </div>
             </div>
 
@@ -305,452 +389,4 @@
                     </div>
                 </div>
                 <input type="range" id="strength-slider" min="1" max="4" value="3" oninput="updateSliders(); clearRecipe();">
-                <p class="slider-hint">O restante dos despejos decide a força (extração) do café.</p>
-            </div>
-        </div>
-
-        <button type="button" class="btn-primary" onclick="generateRecipe()">Calcular Receita</button>
-
-        <p id="form-error" class="hidden" role="alert"></p>
-
-        <div id="recipe-container" class="hidden card">
-            <div class="recipe-header">
-                <h2>Instruções de Despejo</h2>
-                <button type="button" onclick="copyRecipe()" aria-label="Copiar receita" class="copy-btn">Copiar</button>
-            </div>
-            <div id="steps" aria-live="polite"></div>
-        </div>
-    </div>
-
-    <script>
-        const grindLadder = ['Fina', 'Média-Fina', 'Média', 'Média-Grossa', 'Grossa'];
-
-        function shiftGrind(base, roast) {
-            let idx = grindLadder.indexOf(base);
-            if (idx < 0) return base;
-            if (roast === 'light') idx = Math.max(0, idx - 1);
-            else if (roast === 'dark') idx = Math.min(grindLadder.length - 1, idx + 1);
-            return grindLadder[idx];
-        }
-
-        function getTemp(recipe, roast) {
-            if (recipe.tempByRoast) return recipe.tempByRoast[roast];
-            const base = recipe.tempBase;
-            if (roast === 'light') return `${Math.min(99, base + 3)}°C`;
-            if (roast === 'dark') return `${Math.max(78, base - 5)}°C`;
-            return `${base}°C`;
-        }
-
-        function getGrind(recipe, roast) {
-            return shiftGrind(recipe.grindBase, roast);
-        }
-
-        // Todas as receitas abaixo foram conferidas contra fontes primárias
-        // (timer.coffee, guias oficiais dos métodos) em jul/2026.
-        const deviceData = {
-            v60: {
-                label: 'V60',
-                recipes: {
-                    hoffmann: {
-                        label: 'James Hoffmann (1:16.6)',
-                        ratio: 500 / 30,
-                        ratioLabel: '1:16.6',
-                        grindBase: 'Média-Fina',
-                        tempBase: 95,
-                        note: 'Receita "Ultimate V60" de James Hoffmann, Campeão Mundial de Barista 2007. Bloom de 2x o peso do café, depois dois despejos até 60% e 100% da água.',
-                        hasKasuyaControls: false,
-                        buildSteps(coffee, water) {
-                            const bloom = coffee * 2;
-                            const p60 = water * 0.6;
-                            return [
-                                { time: '0:00', desc: `<b>Bloom:</b> Despeje <b>${bloom.toFixed(0)}g</b>. Balance o V60 suavemente para molhar todo o pó.` },
-                                { time: '0:45', desc: `<b>1º Despejo:</b> Despeje em círculos até atingir <b>${p60.toFixed(0)}g</b> na balança.` },
-                                { time: '1:15', desc: `<b>2º Despejo:</b> Continue despejando lentamente até atingir <b>${water.toFixed(0)}g</b>.` },
-                                { time: '1:45', desc: `Dê uma leve mexida com uma colher (1x cada lado) e balance o V60 para planificar a cama de café.` },
-                                { time: '3:30', desc: `Tempo estimado para drenagem total.` }
-                            ];
-                        }
-                    },
-                    kasuya: {
-                        label: 'Tetsu Kasuya 4:6 — Campeão Mundial 2016 (1:15)',
-                        ratio: 15,
-                        ratioLabel: '1:15.0',
-                        grindBase: 'Grossa',
-                        tempByRoast: { light: '93°C', medium: '88°C', dark: '83°C' },
-                        note: 'Método 4:6 de Tetsu Kasuya, Campeão Mundial de Brewers Cup 2016. Os dois primeiros despejos (40% da água) ajustam doçura/acidez; o restante (60%) ajusta a força.',
-                        hasKasuyaControls: true,
-                        buildSteps(coffee, water, balVal, strVal) {
-                            let pour1_pct, pour2_pct;
-                            if (balVal === 1) { pour1_pct = 0.12; pour2_pct = 0.28; }
-                            else if (balVal === 2) { pour1_pct = 0.16; pour2_pct = 0.24; }
-                            else if (balVal === 3) { pour1_pct = 0.20; pour2_pct = 0.20; }
-                            else if (balVal === 4) { pour1_pct = 0.24; pour2_pct = 0.16; }
-                            else if (balVal === 5) { pour1_pct = 0.28; pour2_pct = 0.12; }
-
-                            const p1 = water * pour1_pct;
-                            const p2 = water * pour2_pct;
-                            const numStrengthPours = strVal;
-                            const strengthPourAmt = (water * 0.60) / numStrengthPours;
-
-                            let currentWeight = 0;
-                            let currentTime = 0;
-                            const steps = [];
-
-                            currentWeight += p1;
-                            steps.push({ time: formatTime(currentTime), desc: `<b>Bloom:</b> Despeje <b>${p1.toFixed(0)}g</b>. (Alvo: ${currentWeight.toFixed(0)}g)` });
-                            currentTime += 45;
-
-                            currentWeight += p2;
-                            steps.push({ time: formatTime(currentTime), desc: `<b>2º Despejo:</b> Despeje <b>${p2.toFixed(0)}g</b>. (Alvo: ${currentWeight.toFixed(0)}g)` });
-                            currentTime += 45;
-
-                            for (let i = 0; i < numStrengthPours; i++) {
-                                currentWeight += strengthPourAmt;
-                                steps.push({ time: formatTime(currentTime), desc: `<b>Despejo ${i + 3}:</b> Despeje <b>${strengthPourAmt.toFixed(0)}g</b>. (Alvo: ${Math.round(currentWeight)}g)` });
-                                currentTime += 45;
-                            }
-
-                            steps.push({ time: formatTime(currentTime), desc: `Fim da extração. Remova o filtro.` });
-                            return steps;
-                        }
-                    }
-                }
-            },
-            chemex: {
-                label: 'Chemex',
-                recipes: {
-                    hoffmann: {
-                        label: 'James Hoffmann (1:16.6)',
-                        ratio: 500 / 30,
-                        ratioLabel: '1:16.6',
-                        grindBase: 'Média',
-                        tempBase: 95,
-                        note: 'Adaptação de James Hoffmann do método V60 para o Chemex — bloom de 2x o café, despejos até 60% e 100%, com uma sacudida extra ao final.',
-                        hasKasuyaControls: false,
-                        buildSteps(coffee, water) {
-                            const bloom = coffee * 2;
-                            const p60 = water * 0.6;
-                            return [
-                                { time: '0:00', desc: `<b>Bloom:</b> Despeje <b>${bloom.toFixed(0)}g</b>, saturando todo o pó.` },
-                                { time: '0:10', desc: `Mexa gentilmente e deixe florescer.` },
-                                { time: '0:45', desc: `<b>1º Despejo:</b> Em círculos, quebrando grumos, até <b>${p60.toFixed(0)}g</b>.` },
-                                { time: '1:15', desc: `<b>2º Despejo:</b> Continue até <b>${water.toFixed(0)}g</b>.` },
-                                { time: '1:45', desc: `Mexa 1x no sentido horário e 1x no anti-horário com uma colher.` },
-                                { time: '2:00', desc: `Dê uma leve sacudida no Chemex para nivelar a cama de café.` },
-                                { time: '2:10', desc: `Aguarde o gotejamento total (tempo estimado: ~4:10).` }
-                            ];
-                        }
-                    }
-                }
-            },
-            kalita: {
-                label: 'Kalita Wave',
-                recipes: {
-                    mccarthy: {
-                        label: 'James McCarthy — Campeão Mundial 2013 (1:15.8)',
-                        ratio: 380 / 24,
-                        ratioLabel: '1:15.8',
-                        grindBase: 'Grossa',
-                        tempBase: 96,
-                        note: 'Receita de James McCarthy, Campeão Mundial de Brewers Cup 2013 com o Kalita Wave. Despejos pulsados em duas etapas após o bloom.',
-                        hasKasuyaControls: false,
-                        buildSteps(coffee, water) {
-                            const bloom = coffee * 2;
-                            const p50 = water * 0.5;
-                            return [
-                                { time: '0:00', desc: `<b>Pré-molha:</b> Despeje <b>${bloom.toFixed(0)}g</b>.` },
-                                { time: '0:15', desc: `Deixe florescer.` },
-                                { time: '0:45', desc: `<b>Despejo pulsado:</b> até <b>${p50.toFixed(0)}g</b>, mantendo uma coluna de água constante sobre o pó.` },
-                                { time: '1:15', desc: `<b>Despejo pulsado:</b> até <b>${water.toFixed(0)}g</b>. Use um bico de fluxo controlado se tiver.` },
-                                { time: '1:45', desc: `Aguarde o gotejamento completo (tempo estimado: ~3:30).` }
-                            ];
-                        }
-                    }
-                }
-            },
-            origami: {
-                label: 'Origami',
-                recipes: {
-                    jianingdu: {
-                        label: 'Jia Ning Du — Campeã Mundial 2019 (1:15.0)',
-                        ratio: 240 / 16,
-                        ratioLabel: '1:15.0',
-                        grindBase: 'Média',
-                        tempBase: 94,
-                        note: 'Receita vencedora de Jia Ning Du, Campeã Mundial de Brewers Cup 2019 — primeira barista chinesa a vencer o título. Extração rápida em três despejos.',
-                        hasKasuyaControls: false,
-                        buildSteps(coffee, water) {
-                            const p1 = water * 0.25;
-                            const p2cum = water * 0.5833;
-                            return [
-                                { time: '0:00', desc: `<b>1º Despejo:</b> Despeje <b>${p1.toFixed(0)}g</b>.` },
-                                { time: '0:10', desc: `Aguarde.` },
-                                { time: '0:18', desc: `<b>2º Despejo:</b> Continue até <b>${p2cum.toFixed(0)}g</b>.` },
-                                { time: '0:38', desc: `Aguarde.` },
-                                { time: '0:56', desc: `<b>3º Despejo:</b> Complete até <b>${water.toFixed(0)}g</b>.` },
-                                { time: '1:16', desc: `Aguarde o gotejamento total (tempo estimado: ~1:46).` }
-                            ];
-                        }
-                    }
-                }
-            },
-            frenchpress: {
-                label: 'Prensa Francesa',
-                recipes: {
-                    hoffmann: {
-                        label: 'James Hoffmann (1:16.7)',
-                        ratio: 500 / 30,
-                        ratioLabel: '1:16.7',
-                        grindBase: 'Média-Grossa',
-                        tempBase: 95,
-                        note: 'Técnica "Ultimate French Press" de James Hoffmann: um longo descanso antes de prensar reduz sedimentos e deixa a xícara mais limpa.',
-                        hasKasuyaControls: false,
-                        buildSteps(coffee, water) {
-                            return [
-                                { time: '0:00', desc: `Despeje toda a água (<b>${water.toFixed(0)}g</b>) de uma vez, cobrindo todo o pó.` },
-                                { time: '0:15', desc: `Deixe descansar sem mexer.` },
-                                { time: '4:15', desc: `Mexa a crosta que se formou no topo e remova a espuma/partículas flutuantes com uma colher.` },
-                                { time: '4:45', desc: `Deixe descansar por mais 5 minutos, sem mexer, para as partículas assentarem.` },
-                                { time: '9:45', desc: `Encaixe o êmbolo só até a superfície do líquido, sem pressionar, e sirva devagar.` }
-                            ];
-                        }
-                    }
-                }
-            },
-            aeropress: {
-                label: 'AeroPress',
-                recipes: {
-                    hoffmann: {
-                        label: 'James Hoffmann (1:18.2)',
-                        ratio: 200 / 11,
-                        ratioLabel: '1:18.2',
-                        grindBase: 'Média-Fina',
-                        tempByRoast: { light: '95°C', medium: '90°C - 95°C', dark: '85°C - 90°C' },
-                        note: 'Receita padrão de James Hoffmann para AeroPress na posição tradicional (não invertida).',
-                        hasKasuyaControls: false,
-                        buildSteps(coffee, water) {
-                            return [
-                                { time: '0:00', desc: `Despeje toda a água (<b>${water.toFixed(0)}g</b>), molhando todo o café.` },
-                                { time: '0:10', desc: `Encaixe o êmbolo cerca de 1cm no topo do bocal.` },
-                                { time: '0:15', desc: `Aguarde 2 minutos.` },
-                                { time: '2:15', desc: `Segurando o corpo e o êmbolo, gire suavemente o AeroPress.` },
-                                { time: '2:25', desc: `Aguarde 30 segundos.` },
-                                { time: '2:55', desc: `Pressione suavemente até o final (tempo estimado: ~3:25).` }
-                            ];
-                        }
-                    },
-                    merikanto: {
-                        label: 'Tuomas Merikanto — Campeão Mundial 2021 (1:11.1)',
-                        ratio: 200 / 18,
-                        ratioLabel: '1:11.1',
-                        grindBase: 'Média-Fina',
-                        tempBase: 80,
-                        note: 'Receita vencedora do Campeonato Mundial de AeroPress 2021, de Tuomas Merikanto (Finlândia). Método invertido, com bloom curto e temperatura mais baixa.',
-                        hasKasuyaControls: false,
-                        buildSteps(coffee, water) {
-                            const p1 = water * 0.25;
-                            return [
-                                { time: '0:00', desc: `<b>AeroPress invertido:</b> despeje <b>${p1.toFixed(0)}g</b> para o bloom.` },
-                                { time: '0:10', desc: `Mexa bem suavemente, 3 vezes.` },
-                                { time: '0:15', desc: `Complete até <b>${water.toFixed(0)}g</b>.` },
-                                { time: '0:30', desc: `Deixe extrair sem mexer.` },
-                                { time: '0:50', desc: `Mexa bem suavemente mais 3 vezes.` },
-                                { time: '1:00', desc: `Retire o excesso de ar e encaixe a tampa com o filtro.` },
-                                { time: '1:40', desc: `Vire o AeroPress para a posição normal e comece a pressionar.` },
-                                { time: '2:00', desc: `Gire suavemente para resfriar antes de servir.` }
-                            ];
-                        }
-                    }
-                }
-            }
-        };
-
-        function formatTime(totalSeconds) {
-            const m = Math.floor(totalSeconds / 60);
-            const s = totalSeconds % 60;
-            return `${m}:${s.toString().padStart(2, '0')}`;
-        }
-
-        function clearRecipe() {
-            document.getElementById('recipe-container').classList.add('hidden');
-        }
-
-        function getCurrentRecipe() {
-            const deviceKey = document.getElementById('device').value;
-            const recipeKey = document.getElementById('recipe').value;
-            return deviceData[deviceKey].recipes[recipeKey];
-        }
-
-        function populateRecipeSelect(deviceKey, selectRecipeKey) {
-            const recipeSelect = document.getElementById('recipe');
-            recipeSelect.innerHTML = '';
-            const recipes = deviceData[deviceKey].recipes;
-            Object.keys(recipes).forEach(key => {
-                const opt = document.createElement('option');
-                opt.value = key;
-                opt.textContent = recipes[key].label;
-                recipeSelect.appendChild(opt);
-            });
-            if (selectRecipeKey && recipes[selectRecipeKey]) {
-                recipeSelect.value = selectRecipeKey;
-            }
-        }
-
-        function onDeviceChange() {
-            populateRecipeSelect(document.getElementById('device').value);
-            update('device');
-        }
-
-        function adjust(field, amount) {
-            const input = document.getElementById(field);
-            const current = parseFloat(input.value);
-            input.value = Math.max(0, (isNaN(current) ? 0 : current) + amount);
-            update(field);
-        }
-
-        function saveSettings() {
-            try {
-                localStorage.setItem('brewcalc-settings', JSON.stringify({
-                    device: document.getElementById('device').value,
-                    recipe: document.getElementById('recipe').value,
-                    roast: document.getElementById('roast').value,
-                    water: document.getElementById('water').value,
-                    coffee: document.getElementById('coffee').value,
-                    balance: document.getElementById('balance-slider').value,
-                    strength: document.getElementById('strength-slider').value
-                }));
-            } catch (e) { /* localStorage indisponível (ex: modo privado) — ignora silenciosamente */ }
-        }
-
-        function loadSettings() {
-            try {
-                const saved = JSON.parse(localStorage.getItem('brewcalc-settings'));
-                if (!saved) { populateRecipeSelect('v60'); return; }
-                if (saved.device) document.getElementById('device').value = saved.device;
-                populateRecipeSelect(document.getElementById('device').value, saved.recipe);
-                if (saved.roast) document.getElementById('roast').value = saved.roast;
-                if (saved.water) document.getElementById('water').value = saved.water;
-                if (saved.coffee) document.getElementById('coffee').value = saved.coffee;
-                if (saved.balance) document.getElementById('balance-slider').value = saved.balance;
-                if (saved.strength) document.getElementById('strength-slider').value = saved.strength;
-            } catch (e) {
-                populateRecipeSelect('v60');
-            }
-        }
-
-        function updateSliders() {
-            const balSlider = document.getElementById('balance-slider');
-            const strSlider = document.getElementById('strength-slider');
-
-            document.getElementById('balance-label').innerText = balanceTexts[balSlider.value - 1];
-            document.getElementById('strength-label').innerText = strengthTexts[strSlider.value - 1];
-
-            balSlider.style.setProperty('--value', ((balSlider.value - 1) / 4) * 100 + '%');
-            strSlider.style.setProperty('--value', ((strSlider.value - 1) / 3) * 100 + '%');
-
-            saveSettings();
-        }
-
-        const balanceTexts = ["Muito Doce", "Mais Doce", "Equilibrado", "Mais Ácido", "Muito Ácido"];
-        const strengthTexts = ["Baixa (1 Despejo)", "Média-Baixa (2 Despejos)", "Padrão (3 Despejos)", "Alta (4 Despejos)"];
-
-        function update(source) {
-            clearRecipe();
-
-            const recipe = getCurrentRecipe();
-            const roast = document.getElementById('roast').value;
-
-            document.getElementById('temp-sug').innerText = getTemp(recipe, roast);
-            document.getElementById('grind-sug').innerText = getGrind(recipe, roast);
-            document.getElementById('ratio-text').innerText = `Proporção: ${recipe.ratioLabel}`;
-            document.getElementById('recipe-note').innerText = recipe.note;
-
-            const kasuyaPanel = document.getElementById('kasuya-controls');
-            if (recipe.hasKasuyaControls) {
-                kasuyaPanel.classList.remove('hidden');
-                updateSliders();
-            } else {
-                kasuyaPanel.classList.add('hidden');
-            }
-
-            const coffeeInput = document.getElementById('coffee');
-            const waterInput = document.getElementById('water');
-
-            // Evita valores negativos digitados manualmente no campo
-            if (parseFloat(coffeeInput.value) < 0) coffeeInput.value = 0;
-            if (parseFloat(waterInput.value) < 0) waterInput.value = 0;
-
-            if (source === 'device' || source === 'recipe' || source === 'coffee') {
-                const coffeeVal = parseFloat(coffeeInput.value) || 0;
-                waterInput.value = Math.round(coffeeVal * recipe.ratio);
-            } else if (source === 'water') {
-                const waterVal = parseFloat(waterInput.value) || 0;
-                coffeeInput.value = (waterVal / recipe.ratio).toFixed(1);
-            }
-
-            saveSettings();
-        }
-
-        function generateRecipe() {
-            const recipe = getCurrentRecipe();
-            const coffee = parseFloat(document.getElementById('coffee').value);
-            const water = parseFloat(document.getElementById('water').value);
-            const stepsContainer = document.getElementById('steps');
-            const errorEl = document.getElementById('form-error');
-
-            if (!coffee || !water || coffee <= 0 || water <= 0) {
-                errorEl.textContent = 'Informe valores de café e água maiores que zero.';
-                errorEl.classList.remove('hidden');
-                document.getElementById('recipe-container').classList.add('hidden');
-                return;
-            }
-            errorEl.classList.add('hidden');
-
-            stepsContainer.innerHTML = '';
-            document.getElementById('recipe-container').classList.remove('hidden');
-
-            let steps;
-            if (recipe.hasKasuyaControls) {
-                const balVal = parseInt(document.getElementById('balance-slider').value);
-                const strVal = parseInt(document.getElementById('strength-slider').value);
-                steps = recipe.buildSteps(coffee, water, balVal, strVal);
-            } else {
-                steps = recipe.buildSteps(coffee, water);
-            }
-
-            steps.forEach(s => {
-                const el = document.createElement('div');
-                el.className = 'step';
-                el.innerHTML = `
-                    <div class="step-time">${s.time}</div>
-                    <div class="step-desc">${s.desc}</div>
-                `;
-                stepsContainer.appendChild(el);
-            });
-        }
-
-        function copyRecipe() {
-            const recipe = getCurrentRecipe();
-            const stepsContainer = document.getElementById('steps');
-            const lines = Array.from(stepsContainer.children).map(el => {
-                const time = el.querySelector('.step-time').innerText;
-                const desc = el.querySelector('.step-desc').innerText;
-                return `${time}  ${desc}`;
-            });
-            const text = `BrewCalc — ${recipe.label}\n${lines.join('\n')}`;
-
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(text).then(() => {
-                    const btn = document.querySelector('[aria-label="Copiar receita"]');
-                    const original = btn.textContent;
-                    btn.textContent = 'Copiado!';
-                    setTimeout(() => { btn.textContent = original; }, 1500);
-                }).catch(() => {});
-            }
-        }
-
-        loadSettings();
-        update('device');
-    </script>
-</body>
-</html>
+                <p class="slider-hint">O restante dos despejos decide a
