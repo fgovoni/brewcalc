@@ -4,42 +4,81 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="BrewCalc — calculadora de receitas de café coado com métodos e receitas de baristas campeões mundiais (V60, Chemex, Kalita Wave, Origami, Prensa Francesa, AeroPress).">
-    <meta name="theme-color" content="#121212">
+    <meta name="theme-color" content="#1b1410" id="theme-color-meta">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f8fafc' stroke-width='2'%3E%3Cpath d='M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z'/%3E%3C/svg%3E">
     <title>BrewCalc</title>
+    <script>
+        // Aplica o tema antes do primeiro paint, para evitar flash da cor errada
+        (function () {
+            try {
+                var t = localStorage.getItem('brewcalc-theme');
+                if (!t) t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', t);
+            } catch (e) { /* ignora — usa o tema escuro padrão do CSS */ }
+        })();
+    </script>
     <style>
         :root {
-            --bg: #121212;
-            --card: #1e1e1e;
-            --field: #2a2a2a;
-            --panel: #161616;
-            --border: #374151;
-            --text: #f8fafc;
-            --muted: #9ca3af;
-            --muted-light: #d1d5db;
-            --blue: #3b82f6;
-            --blue-dark: #2563eb;
-            --blue-darker: #1d4ed8;
-            --blue-light: #60a5fa;
-            --blue-lighter: #93c5fd;
-            --red: #ef4444;
-            --red-light: #f87171;
-            --stone: #78716c;
-            --stone-light: #a8a29e;
-            --green: #22c55e;
+            --bg: #1b1410;
+            --card: #2a1f18;
+            --field: #3a2b21;
+            --panel: #221913;
+            --border: #4d3a2c;
+            --text: #f3e9dd;
+            --muted: #a08b76;
+            --muted-light: #d8c6b3;
+            --blue: #d9a441;
+            --blue-dark: #c1852c;
+            --blue-darker: #a66f22;
+            --blue-light: #e8be6e;
+            --blue-lighter: #f0d29a;
+            --red: #e0664a;
+            --red-light: #ef8468;
+            --stone: #7c6a56;
+            --stone-light: #a8927e;
+            --green: #7cae6f;
+        }
+
+        html[data-theme="light"] {
+            --bg: #f6efe3;
+            --card: #fffaf2;
+            --field: #f1e3cd;
+            --panel: #ece0c9;
+            --border: #ddc9a4;
+            --text: #2b1d10;
+            --muted: #8a7360;
+            --muted-light: #5a4632;
+            --blue: #a8632e;
+            --blue-dark: #8f4f22;
+            --blue-darker: #753f1a;
+            --blue-light: #b8752f;
+            --blue-lighter: #cf9a5c;
+            --red: #c1432a;
+            --red-light: #a8341f;
+            --stone: #6b5a48;
+            --stone-light: #8a7461;
+            --green: #4f7a44;
         }
 
         * { box-sizing: border-box; }
 
+        html { transition: background-color .2s ease; }
+
         body {
             margin: 0;
             background-color: var(--bg);
+            background-image: radial-gradient(ellipse at top, rgba(217, 164, 65, 0.08), transparent 55%);
             color: var(--text);
             font-family: system-ui, -apple-system, sans-serif;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             padding: 16px;
+            transition: background-color .2s ease, color .2s ease;
+        }
+
+        .card, select, .text-input, textarea, .field, input[type=number] {
+            transition: background-color .2s ease, color .2s ease, border-color .2s ease;
         }
 
         .app { width: 100%; max-width: 448px; margin-top: 8px; padding-bottom: 40px; }
@@ -53,9 +92,21 @@
         }
 
         .app-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .app-header-title { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .theme-toggle {
+            width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--border);
+            background: var(--card); color: var(--text); font-size: 18px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+            transition: background-color .2s ease, border-color .2s ease;
+        }
+        .theme-toggle:hover { background: var(--field); }
         .icon-badge { background: var(--blue); padding: 8px; border-radius: 12px; line-height: 0; flex-shrink: 0; }
         .icon-badge svg { width: 24px; height: 24px; color: #fff; }
-        h1 { font-size: 20px; font-weight: 700; margin: 0; }
+        h1 {
+            font-size: 23px; font-weight: 700; margin: 0;
+            font-family: ui-serif, Georgia, 'Times New Roman', serif;
+            letter-spacing: 0.02em;
+        }
 
         .tabs { display: flex; gap: 8px; margin-bottom: 16px; background: var(--panel); padding: 4px; border-radius: 12px; }
         .tab-btn {
@@ -91,7 +142,7 @@
         #share-canvas { width: 100%; border-radius: 12px; margin-bottom: 16px; background: var(--bg); }
         .share-actions { display: flex; gap: 10px; }
         .btn-secondary { margin-bottom: 0; }
-        #ratio-text { font-size: 12px; color: var(--muted); margin: 0; }
+        #ratio-text { font-size: 11px; color: var(--muted); margin: 0; text-transform: uppercase; letter-spacing: 0.08em; }
 
         .sr-only {
             position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -286,13 +337,16 @@
     <div class="app">
 
         <div class="app-header">
-            <div class="icon-badge">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+            <div class="app-header-title">
+                <div class="icon-badge">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                </div>
+                <div>
+                    <h1>BrewCalc</h1>
+                    <p id="ratio-text">Proporção: 1:16.6</p>
+                </div>
             </div>
-            <div>
-                <h1>BrewCalc</h1>
-                <p id="ratio-text">Proporção: 1:16.6</p>
-            </div>
+            <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Alternar tema claro/escuro" onclick="toggleTheme()">🌙</button>
         </div>
 
         <div class="tabs" role="tablist">
@@ -389,4 +443,882 @@
                     </div>
                 </div>
                 <input type="range" id="strength-slider" min="1" max="4" value="3" oninput="updateSliders(); clearRecipe();">
-                <p class="slider-hint">O restante dos despejos decide a
+                <p class="slider-hint">O restante dos despejos decide a força (extração) do café.</p>
+            </div>
+        </div>
+
+        <button type="button" class="btn-primary" onclick="generateRecipe()">Calcular Receita</button>
+
+        <p id="form-error" class="hidden" role="alert"></p>
+
+        <div id="recipe-container" class="hidden card">
+            <div class="recipe-header">
+                <h2>Instruções de Despejo</h2>
+                <button type="button" onclick="copyRecipe()" aria-label="Copiar receita" class="copy-btn">Copiar</button>
+            </div>
+            <div id="steps" aria-live="polite"></div>
+        </div>
+
+        </div>
+
+        <div id="tab-review" role="tabpanel" aria-labelledby="tab-btn-review" class="hidden">
+
+            <div class="card">
+                <label for="coffee-name" class="field-label-inline">Nome do café</label>
+                <input type="text" id="coffee-name" class="text-input" placeholder="ex: Sítio Vista Alegre">
+
+                <label for="roastery-name" class="field-label-inline">Nome da torrefação</label>
+                <input type="text" id="roastery-name" class="text-input" placeholder="ex: Coffee Lab">
+
+                <div class="field-grid" style="margin-bottom:14px;">
+                    <div>
+                        <label for="review-roast" class="field-label-inline">Nível da torra</label>
+                        <select id="review-roast" aria-label="Nível da torra">
+                            <option value="Clara">Clara</option>
+                            <option value="Média" selected>Média</option>
+                            <option value="Escura">Escura</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="review-process" class="field-label-inline">Processo</label>
+                        <select id="review-process" aria-label="Processo do café">
+                            <option value="Natural">Natural</option>
+                            <option value="Lavado">Lavado</option>
+                            <option value="Honey">Honey</option>
+                            <option value="Fermentado">Fermentado</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label for="variety" class="field-label-inline">Espécie / Variedade</label>
+                <input type="text" id="variety" class="text-input" placeholder="ex: Arábica - Catuaí Amarelo">
+
+                <div class="field-grid" style="margin-bottom:14px;">
+                    <div>
+                        <label for="review-temp" class="field-label-inline">Temperatura da água</label>
+                        <input type="text" id="review-temp" class="text-input" placeholder="ex: 93°C">
+                    </div>
+                    <div>
+                        <label for="review-grind" class="field-label-inline">Nível de moagem</label>
+                        <select id="review-grind" aria-label="Nível de moagem">
+                            <option value="Fina">Fina</option>
+                            <option value="Média-Fina" selected>Média-Fina</option>
+                            <option value="Média">Média</option>
+                            <option value="Média-Grossa">Média-Grossa</option>
+                            <option value="Grossa">Grossa</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label for="review-notes" class="field-label-inline">Notas</label>
+                <textarea id="review-notes" class="text-input" rows="3" placeholder="ex: chocolate, caramelo, frutas vermelhas" style="margin-bottom:4px; resize:vertical;"></textarea>
+            </div>
+
+            <div class="card">
+                <h2 style="margin-bottom:16px;">Avaliação Sensorial</h2>
+                <div id="rating-sliders"></div>
+            </div>
+
+            <button type="button" class="btn-primary" onclick="generateShareImage()">Gerar Imagem</button>
+
+            <div id="share-preview" class="hidden card">
+                <div class="recipe-header">
+                    <h2>Imagem para Stories</h2>
+                </div>
+                <canvas id="share-canvas" width="1080" height="1920"></canvas>
+                <div class="share-actions">
+                    <button type="button" class="btn-primary btn-secondary" id="download-btn" onclick="downloadShareImage()">Baixar imagem</button>
+                    <button type="button" class="btn-primary btn-secondary hidden" id="share-btn" onclick="shareImage()">Compartilhar</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const grindLadder = ['Fina', 'Média-Fina', 'Média', 'Média-Grossa', 'Grossa'];
+
+        function shiftGrind(base, roast) {
+            let idx = grindLadder.indexOf(base);
+            if (idx < 0) return base;
+            if (roast === 'light') idx = Math.max(0, idx - 1);
+            else if (roast === 'dark') idx = Math.min(grindLadder.length - 1, idx + 1);
+            return grindLadder[idx];
+        }
+
+        function getTemp(recipe, roast) {
+            if (recipe.tempByRoast) return recipe.tempByRoast[roast];
+            const base = recipe.tempBase;
+            if (roast === 'light') return `${Math.min(99, base + 3)}°C`;
+            if (roast === 'dark') return `${Math.max(78, base - 5)}°C`;
+            return `${base}°C`;
+        }
+
+        function getGrind(recipe, roast) {
+            return shiftGrind(recipe.grindBase, roast);
+        }
+
+        function getClicksRef(recipe, roast) {
+            if (!recipe.clicksByRoast) return null;
+            return { value: recipe.clicksByRoast[roast], estimated: !!recipe.clicksEstimated };
+        }
+
+        // Todas as receitas abaixo foram conferidas contra fontes primárias
+        // (timer.coffee, guias oficiais dos métodos) em jul/2026.
+        const deviceData = {
+            v60: {
+                label: 'V60',
+                recipes: {
+                    hoffmann: {
+                        label: 'James Hoffmann (1:16.6)',
+                        ratio: 500 / 30,
+                        ratioLabel: '1:16.6',
+                        grindBase: 'Média-Fina',
+                        tempBase: 95,
+                        clicksByRoast: { light: 17, medium: 18, dark: 19 },
+                        note: 'Receita "Ultimate V60" de James Hoffmann, Campeão Mundial de Barista 2007. Bloom de 2x o peso do café, depois dois despejos até 60% e 100% da água.',
+                        hasKasuyaControls: false,
+                        buildSteps(coffee, water) {
+                            const bloom = coffee * 2;
+                            const p60 = water * 0.6;
+                            return [
+                                { time: '0:00', desc: `<b>Bloom:</b> Despeje <b>${bloom.toFixed(0)}g</b>. Balance o V60 suavemente para molhar todo o pó.` },
+                                { time: '0:45', desc: `<b>1º Despejo:</b> Despeje em círculos até atingir <b>${p60.toFixed(0)}g</b> na balança.` },
+                                { time: '1:15', desc: `<b>2º Despejo:</b> Continue despejando lentamente até atingir <b>${water.toFixed(0)}g</b>.` },
+                                { time: '1:45', desc: `Dê uma leve mexida com uma colher (1x cada lado) e balance o V60 para planificar a cama de café.` },
+                                { time: '3:30', desc: `Tempo estimado para drenagem total.` }
+                            ];
+                        }
+                    },
+                    kasuya: {
+                        label: 'Tetsu Kasuya 4:6 — Campeão Mundial 2016 (1:15)',
+                        ratio: 15,
+                        ratioLabel: '1:15.0',
+                        grindBase: 'Média-Grossa',
+                        tempByRoast: { light: '93°C', medium: '88°C', dark: '83°C' },
+                        clicksByRoast: { light: 20, medium: 21, dark: 22 },
+                        clicksEstimated: true,
+                        note: 'Método 4:6 de Tetsu Kasuya, Campeão Mundial de Brewers Cup 2016. Os dois primeiros despejos (40% da água) ajustam doçura/acidez; o restante (60%) ajusta a força.',
+                        hasKasuyaControls: true,
+                        buildSteps(coffee, water, balVal, strVal) {
+                            let pour1_pct, pour2_pct;
+                            if (balVal === 1) { pour1_pct = 0.12; pour2_pct = 0.28; }
+                            else if (balVal === 2) { pour1_pct = 0.16; pour2_pct = 0.24; }
+                            else if (balVal === 3) { pour1_pct = 0.20; pour2_pct = 0.20; }
+                            else if (balVal === 4) { pour1_pct = 0.24; pour2_pct = 0.16; }
+                            else if (balVal === 5) { pour1_pct = 0.28; pour2_pct = 0.12; }
+
+                            const p1 = water * pour1_pct;
+                            const p2 = water * pour2_pct;
+                            const numStrengthPours = strVal;
+                            const strengthPourAmt = (water * 0.60) / numStrengthPours;
+
+                            let currentWeight = 0;
+                            let currentTime = 0;
+                            const steps = [];
+
+                            currentWeight += p1;
+                            steps.push({ time: formatTime(currentTime), desc: `<b>Bloom:</b> Despeje <b>${p1.toFixed(0)}g</b>. (Alvo: ${currentWeight.toFixed(0)}g)` });
+                            currentTime += 45;
+
+                            currentWeight += p2;
+                            steps.push({ time: formatTime(currentTime), desc: `<b>2º Despejo:</b> Despeje <b>${p2.toFixed(0)}g</b>. (Alvo: ${currentWeight.toFixed(0)}g)` });
+                            currentTime += 45;
+
+                            for (let i = 0; i < numStrengthPours; i++) {
+                                currentWeight += strengthPourAmt;
+                                steps.push({ time: formatTime(currentTime), desc: `<b>Despejo ${i + 3}:</b> Despeje <b>${strengthPourAmt.toFixed(0)}g</b>. (Alvo: ${Math.round(currentWeight)}g)` });
+                                currentTime += 45;
+                            }
+
+                            steps.push({ time: formatTime(currentTime), desc: `Fim da extração. Remova o filtro.` });
+                            return steps;
+                        }
+                    }
+                }
+            },
+            chemex: {
+                label: 'Chemex',
+                recipes: {
+                    hoffmann: {
+                        label: 'James Hoffmann (1:16.6)',
+                        ratio: 500 / 30,
+                        ratioLabel: '1:16.6',
+                        grindBase: 'Média-Grossa',
+                        tempBase: 95,
+                        clicksByRoast: { light: 20, medium: 21, dark: 22 },
+                        note: 'Adaptação de James Hoffmann do método V60 para o Chemex — bloom de 2x o café, despejos até 60% e 100%, com uma sacudida extra ao final.',
+                        hasKasuyaControls: false,
+                        buildSteps(coffee, water) {
+                            const bloom = coffee * 2;
+                            const p60 = water * 0.6;
+                            return [
+                                { time: '0:00', desc: `<b>Bloom:</b> Despeje <b>${bloom.toFixed(0)}g</b>, saturando todo o pó.` },
+                                { time: '0:10', desc: `Mexa gentilmente e deixe florescer.` },
+                                { time: '0:45', desc: `<b>1º Despejo:</b> Em círculos, quebrando grumos, até <b>${p60.toFixed(0)}g</b>.` },
+                                { time: '1:15', desc: `<b>2º Despejo:</b> Continue até <b>${water.toFixed(0)}g</b>.` },
+                                { time: '1:45', desc: `Mexa 1x no sentido horário e 1x no anti-horário com uma colher.` },
+                                { time: '2:00', desc: `Dê uma leve sacudida no Chemex para nivelar a cama de café.` },
+                                { time: '2:10', desc: `Aguarde o gotejamento total (tempo estimado: ~4:10).` }
+                            ];
+                        }
+                    }
+                }
+            },
+            kalita: {
+                label: 'Kalita Wave',
+                recipes: {
+                    mccarthy: {
+                        label: 'James McCarthy — Campeão Mundial 2013 (1:15.8)',
+                        ratio: 380 / 24,
+                        ratioLabel: '1:15.8',
+                        grindBase: 'Média',
+                        tempBase: 96,
+                        clicksByRoast: { light: 18, medium: 19, dark: 20 },
+                        clicksEstimated: true,
+                        note: 'Receita de James McCarthy, Campeão Mundial de Brewers Cup 2013 com o Kalita Wave. Despejos pulsados em duas etapas após o bloom.',
+                        hasKasuyaControls: false,
+                        buildSteps(coffee, water) {
+                            const bloom = coffee * 2;
+                            const p50 = water * 0.5;
+                            return [
+                                { time: '0:00', desc: `<b>Pré-molha:</b> Despeje <b>${bloom.toFixed(0)}g</b>.` },
+                                { time: '0:15', desc: `Deixe florescer.` },
+                                { time: '0:45', desc: `<b>Despejo pulsado:</b> até <b>${p50.toFixed(0)}g</b>, mantendo uma coluna de água constante sobre o pó.` },
+                                { time: '1:15', desc: `<b>Despejo pulsado:</b> até <b>${water.toFixed(0)}g</b>. Use um bico de fluxo controlado se tiver.` },
+                                { time: '1:45', desc: `Aguarde o gotejamento completo (tempo estimado: ~3:30).` }
+                            ];
+                        }
+                    }
+                }
+            },
+            origami: {
+                label: 'Origami',
+                recipes: {
+                    jianingdu: {
+                        label: 'Jia Ning Du — Campeã Mundial 2019 (1:15.0)',
+                        ratio: 240 / 16,
+                        ratioLabel: '1:15.0',
+                        grindBase: 'Média',
+                        tempBase: 94,
+                        clicksByRoast: { light: 18, medium: 19, dark: 20 },
+                        clicksEstimated: true,
+                        note: 'Receita vencedora de Jia Ning Du, Campeã Mundial de Brewers Cup 2019 — primeira barista chinesa a vencer o título. Extração rápida em três despejos.',
+                        hasKasuyaControls: false,
+                        buildSteps(coffee, water) {
+                            const p1 = water * 0.25;
+                            const p2cum = water * 0.5833;
+                            return [
+                                { time: '0:00', desc: `<b>1º Despejo:</b> Despeje <b>${p1.toFixed(0)}g</b>.` },
+                                { time: '0:10', desc: `Aguarde.` },
+                                { time: '0:18', desc: `<b>2º Despejo:</b> Continue até <b>${p2cum.toFixed(0)}g</b>.` },
+                                { time: '0:38', desc: `Aguarde.` },
+                                { time: '0:56', desc: `<b>3º Despejo:</b> Complete até <b>${water.toFixed(0)}g</b>.` },
+                                { time: '1:16', desc: `Aguarde o gotejamento total (tempo estimado: ~1:46).` }
+                            ];
+                        }
+                    }
+                }
+            },
+            frenchpress: {
+                label: 'Prensa Francesa',
+                recipes: {
+                    hoffmann: {
+                        label: 'James Hoffmann (1:16.7)',
+                        ratio: 500 / 30,
+                        ratioLabel: '1:16.7',
+                        grindBase: 'Grossa',
+                        tempBase: 95,
+                        clicksByRoast: { light: 27, medium: 28, dark: 29 },
+                        note: 'Técnica "Ultimate French Press" de James Hoffmann: um longo descanso antes de prensar reduz sedimentos e deixa a xícara mais limpa.',
+                        hasKasuyaControls: false,
+                        buildSteps(coffee, water) {
+                            return [
+                                { time: '0:00', desc: `Despeje toda a água (<b>${water.toFixed(0)}g</b>) de uma vez, cobrindo todo o pó.` },
+                                { time: '0:15', desc: `Deixe descansar sem mexer.` },
+                                { time: '4:15', desc: `Mexa a crosta que se formou no topo e remova a espuma/partículas flutuantes com uma colher.` },
+                                { time: '4:45', desc: `Deixe descansar por mais 5 minutos, sem mexer, para as partículas assentarem.` },
+                                { time: '9:45', desc: `Encaixe o êmbolo só até a superfície do líquido, sem pressionar, e sirva devagar.` }
+                            ];
+                        }
+                    }
+                }
+            },
+            aeropress: {
+                label: 'AeroPress',
+                recipes: {
+                    hoffmann: {
+                        label: 'James Hoffmann (1:18.2)',
+                        ratio: 200 / 11,
+                        ratioLabel: '1:18.2',
+                        grindBase: 'Média-Fina',
+                        tempByRoast: { light: '95°C', medium: '90°C - 95°C', dark: '85°C - 90°C' },
+                        clicksByRoast: { light: 14, medium: 15, dark: 16 },
+                        note: 'Receita padrão de James Hoffmann para AeroPress na posição tradicional (não invertida).',
+                        hasKasuyaControls: false,
+                        buildSteps(coffee, water) {
+                            return [
+                                { time: '0:00', desc: `Despeje toda a água (<b>${water.toFixed(0)}g</b>), molhando todo o café.` },
+                                { time: '0:10', desc: `Encaixe o êmbolo cerca de 1cm no topo do bocal.` },
+                                { time: '0:15', desc: `Aguarde 2 minutos.` },
+                                { time: '2:15', desc: `Segurando o corpo e o êmbolo, gire suavemente o AeroPress.` },
+                                { time: '2:25', desc: `Aguarde 30 segundos.` },
+                                { time: '2:55', desc: `Pressione suavemente até o final (tempo estimado: ~3:25).` }
+                            ];
+                        }
+                    },
+                    merikanto: {
+                        label: 'Tuomas Merikanto — Campeão Mundial 2021 (1:11.1)',
+                        ratio: 200 / 18,
+                        ratioLabel: '1:11.1',
+                        grindBase: 'Fina',
+                        tempBase: 80,
+                        clicksByRoast: { light: 12, medium: 13, dark: 14 },
+                        clicksEstimated: true,
+                        note: 'Receita vencedora do Campeonato Mundial de AeroPress 2021, de Tuomas Merikanto (Finlândia). Método invertido, com bloom curto e temperatura mais baixa.',
+                        hasKasuyaControls: false,
+                        buildSteps(coffee, water) {
+                            const p1 = water * 0.25;
+                            return [
+                                { time: '0:00', desc: `<b>AeroPress invertido:</b> despeje <b>${p1.toFixed(0)}g</b> para o bloom.` },
+                                { time: '0:10', desc: `Mexa bem suavemente, 3 vezes.` },
+                                { time: '0:15', desc: `Complete até <b>${water.toFixed(0)}g</b>.` },
+                                { time: '0:30', desc: `Deixe extrair sem mexer.` },
+                                { time: '0:50', desc: `Mexa bem suavemente mais 3 vezes.` },
+                                { time: '1:00', desc: `Retire o excesso de ar e encaixe a tampa com o filtro.` },
+                                { time: '1:40', desc: `Vire o AeroPress para a posição normal e comece a pressionar.` },
+                                { time: '2:00', desc: `Gire suavemente para resfriar antes de servir.` }
+                            ];
+                        }
+                    }
+                }
+            }
+        };
+
+        function formatTime(totalSeconds) {
+            const m = Math.floor(totalSeconds / 60);
+            const s = totalSeconds % 60;
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function clearRecipe() {
+            document.getElementById('recipe-container').classList.add('hidden');
+        }
+
+        function getCurrentRecipe() {
+            const deviceKey = document.getElementById('device').value;
+            const recipeKey = document.getElementById('recipe').value;
+            return deviceData[deviceKey].recipes[recipeKey];
+        }
+
+        function populateRecipeSelect(deviceKey, selectRecipeKey) {
+            const recipeSelect = document.getElementById('recipe');
+            recipeSelect.innerHTML = '';
+            const recipes = deviceData[deviceKey].recipes;
+            Object.keys(recipes).forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = recipes[key].label;
+                recipeSelect.appendChild(opt);
+            });
+            if (selectRecipeKey && recipes[selectRecipeKey]) {
+                recipeSelect.value = selectRecipeKey;
+            }
+        }
+
+        function onDeviceChange() {
+            populateRecipeSelect(document.getElementById('device').value);
+            update('device');
+        }
+
+        function adjust(field, amount) {
+            const input = document.getElementById(field);
+            const current = parseFloat(input.value);
+            input.value = Math.max(0, (isNaN(current) ? 0 : current) + amount);
+            update(field);
+        }
+
+        function saveSettings() {
+            try {
+                localStorage.setItem('brewcalc-settings', JSON.stringify({
+                    device: document.getElementById('device').value,
+                    recipe: document.getElementById('recipe').value,
+                    roast: document.getElementById('roast').value,
+                    water: document.getElementById('water').value,
+                    coffee: document.getElementById('coffee').value,
+                    balance: document.getElementById('balance-slider').value,
+                    strength: document.getElementById('strength-slider').value
+                }));
+            } catch (e) { /* localStorage indisponível (ex: modo privado) — ignora silenciosamente */ }
+        }
+
+        function loadSettings() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('brewcalc-settings'));
+                if (!saved) { populateRecipeSelect('v60'); return; }
+                if (saved.device) document.getElementById('device').value = saved.device;
+                populateRecipeSelect(document.getElementById('device').value, saved.recipe);
+                if (saved.roast) document.getElementById('roast').value = saved.roast;
+                if (saved.water) document.getElementById('water').value = saved.water;
+                if (saved.coffee) document.getElementById('coffee').value = saved.coffee;
+                if (saved.balance) document.getElementById('balance-slider').value = saved.balance;
+                if (saved.strength) document.getElementById('strength-slider').value = saved.strength;
+            } catch (e) {
+                populateRecipeSelect('v60');
+            }
+        }
+
+        function updateSliders() {
+            const balSlider = document.getElementById('balance-slider');
+            const strSlider = document.getElementById('strength-slider');
+
+            document.getElementById('balance-label').innerText = balanceTexts[balSlider.value - 1];
+            document.getElementById('strength-label').innerText = strengthTexts[strSlider.value - 1];
+
+            balSlider.style.setProperty('--value', ((balSlider.value - 1) / 4) * 100 + '%');
+            strSlider.style.setProperty('--value', ((strSlider.value - 1) / 3) * 100 + '%');
+
+            saveSettings();
+        }
+
+        const balanceTexts = ["Muito Doce", "Mais Doce", "Equilibrado", "Mais Ácido", "Muito Ácido"];
+        const strengthTexts = ["Baixa (1 Despejo)", "Média-Baixa (2 Despejos)", "Padrão (3 Despejos)", "Alta (4 Despejos)"];
+
+        function update(source) {
+            clearRecipe();
+
+            const recipe = getCurrentRecipe();
+            const roast = document.getElementById('roast').value;
+
+            document.getElementById('temp-sug').innerText = getTemp(recipe, roast);
+            document.getElementById('grind-sug').innerText = getGrind(recipe, roast);
+            const clicksVal = getClicksRef(recipe, roast);
+            const clicksWrap = document.getElementById('grind-clicks-wrap');
+            const popoverEl = clicksWrap.querySelector('.popover');
+            if (clicksVal !== null) {
+                document.getElementById('grind-clicks-num').innerText = `${clicksVal.estimated ? '~' : ''}${clicksVal.value} cliques`;
+                popoverEl.innerHTML = clicksVal.estimated
+                    ? 'Faixa <b>estimada</b> por interpolação a partir de outras receitas — não é uma referência testada especificamente para este método. Use como ponto de partida e ajuste pelo sabor.'
+                    : 'Cliques de referência calibrados para o moedor <b>Timemore C2</b>. Use como ponto de partida — pode variar conforme o seu moedor.';
+                clicksWrap.classList.remove('hidden');
+            } else {
+                clicksWrap.classList.add('hidden');
+            }
+            document.getElementById('ratio-text').innerText = `Proporção: ${recipe.ratioLabel}`;
+            document.getElementById('recipe-note').innerText = recipe.note;
+
+            const kasuyaPanel = document.getElementById('kasuya-controls');
+            if (recipe.hasKasuyaControls) {
+                kasuyaPanel.classList.remove('hidden');
+                updateSliders();
+            } else {
+                kasuyaPanel.classList.add('hidden');
+            }
+
+            const coffeeInput = document.getElementById('coffee');
+            const waterInput = document.getElementById('water');
+
+            // Evita valores negativos digitados manualmente no campo
+            if (parseFloat(coffeeInput.value) < 0) coffeeInput.value = 0;
+            if (parseFloat(waterInput.value) < 0) waterInput.value = 0;
+
+            if (source === 'device' || source === 'recipe' || source === 'coffee') {
+                const coffeeVal = parseFloat(coffeeInput.value) || 0;
+                waterInput.value = Math.round(coffeeVal * recipe.ratio);
+            } else if (source === 'water') {
+                const waterVal = parseFloat(waterInput.value) || 0;
+                coffeeInput.value = (waterVal / recipe.ratio).toFixed(1);
+            }
+
+            saveSettings();
+        }
+
+        function generateRecipe() {
+            const recipe = getCurrentRecipe();
+            const roast = document.getElementById('roast').value;
+            const coffee = parseFloat(document.getElementById('coffee').value);
+            const water = parseFloat(document.getElementById('water').value);
+            const stepsContainer = document.getElementById('steps');
+            const errorEl = document.getElementById('form-error');
+
+            if (!coffee || !water || coffee <= 0 || water <= 0) {
+                errorEl.textContent = 'Informe valores de café e água maiores que zero.';
+                errorEl.classList.remove('hidden');
+                document.getElementById('recipe-container').classList.add('hidden');
+                return;
+            }
+            errorEl.classList.add('hidden');
+
+            stepsContainer.innerHTML = '';
+            document.getElementById('recipe-container').classList.remove('hidden');
+
+            const grindLevel = getGrind(recipe, roast);
+            const clicksRef = getClicksRef(recipe, roast);
+            const summaryEl = document.createElement('div');
+            summaryEl.className = 'step';
+            summaryEl.style.borderLeftColor = '#6b7280';
+            summaryEl.innerHTML = `
+                <div class="step-time">⚙️</div>
+                <div class="step-desc">${grindLevel}${clicksRef !== null ? ` · <b>${clicksRef.estimated ? '~' : ''}${clicksRef.value} cliques</b>` : ''} · ${getTemp(recipe, roast)}</div>
+            `;
+            stepsContainer.appendChild(summaryEl);
+
+            let steps;
+            if (recipe.hasKasuyaControls) {
+                const balVal = parseInt(document.getElementById('balance-slider').value);
+                const strVal = parseInt(document.getElementById('strength-slider').value);
+                steps = recipe.buildSteps(coffee, water, balVal, strVal);
+            } else {
+                steps = recipe.buildSteps(coffee, water);
+            }
+
+            steps.forEach(s => {
+                const el = document.createElement('div');
+                el.className = 'step';
+                el.innerHTML = `
+                    <div class="step-time">${s.time}</div>
+                    <div class="step-desc">${s.desc}</div>
+                `;
+                stepsContainer.appendChild(el);
+            });
+        }
+
+        function copyRecipe() {
+            const recipe = getCurrentRecipe();
+            const stepsContainer = document.getElementById('steps');
+            const lines = Array.from(stepsContainer.children).map(el => {
+                const time = el.querySelector('.step-time').innerText;
+                const desc = el.querySelector('.step-desc').innerText;
+                return `${time}  ${desc}`;
+            });
+            const text = `BrewCalc — ${recipe.label}\n${lines.join('\n')}`;
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
+                    const btn = document.querySelector('[aria-label="Copiar receita"]');
+                    const original = btn.textContent;
+                    btn.textContent = 'Copiado!';
+                    setTimeout(() => { btn.textContent = original; }, 1500);
+                }).catch(() => {});
+            }
+        }
+
+        // ---------- Abas ----------
+        function switchTab(tab) {
+            const calcBtn = document.getElementById('tab-btn-calc');
+            const reviewBtn = document.getElementById('tab-btn-review');
+            const calcPanel = document.getElementById('tab-calc');
+            const reviewPanel = document.getElementById('tab-review');
+
+            const goingToReview = tab === 'review';
+            calcBtn.classList.toggle('active', !goingToReview);
+            reviewBtn.classList.toggle('active', goingToReview);
+            calcBtn.setAttribute('aria-selected', String(!goingToReview));
+            reviewBtn.setAttribute('aria-selected', String(goingToReview));
+            calcPanel.classList.toggle('hidden', goingToReview);
+            reviewPanel.classList.toggle('hidden', !goingToReview);
+
+            if (goingToReview) {
+                // Preenche temperatura/moagem com o que está na calculadora, só se estiver vazio
+                const tempField = document.getElementById('review-temp');
+                if (!tempField.value) tempField.value = document.getElementById('temp-sug').innerText;
+                const grindField = document.getElementById('review-grind');
+                const currentGrind = document.getElementById('grind-sug').innerText;
+                if (grindLadder.includes(currentGrind)) grindField.value = currentGrind;
+            }
+        }
+
+        // ---------- Avaliação sensorial ----------
+        const ratingLabels = ['Aroma', 'Doçura', 'Acidez', 'Amargor', 'Sabor', 'Corpo', 'Retrogosto'];
+
+        function buildRatingSliders() {
+            const container = document.getElementById('rating-sliders');
+            ratingLabels.forEach((label, i) => {
+                const id = `rating-${i}`;
+                const row = document.createElement('div');
+                row.className = 'rating-row';
+                row.innerHTML = `
+                    <div class="rating-row-header">
+                        <span>${label}</span>
+                        <span class="rating-value" id="${id}-value">3</span>
+                    </div>
+                    <input type="range" class="rating-slider" id="${id}" min="1" max="5" value="3" step="1" oninput="onRatingInput('${id}')">
+                `;
+                container.appendChild(row);
+            });
+            ratingLabels.forEach((_, i) => onRatingInput(`rating-${i}`));
+        }
+
+        function onRatingInput(id) {
+            const slider = document.getElementById(id);
+            document.getElementById(`${id}-value`).innerText = slider.value;
+            slider.style.setProperty('--value', ((slider.value - 1) / 4) * 100 + '%');
+        }
+
+        function getRatings() {
+            return ratingLabels.map((label, i) => ({
+                label,
+                value: parseInt(document.getElementById(`rating-${i}`).value)
+            }));
+        }
+
+        // ---------- Geração da imagem para Stories (1080x1920) ----------
+        function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            let lines = 0;
+            for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+                    ctx.fillText(line, x, y + lines * lineHeight);
+                    line = words[n] + ' ';
+                    lines++;
+                } else {
+                    line = testLine;
+                }
+            }
+            ctx.fillText(line, x, y + lines * lineHeight);
+            return y + lines * lineHeight + lineHeight;
+        }
+
+        function drawRadarChart(ctx, cx, cy, radius, ratings) {
+            const n = ratings.length;
+            const angleStep = (Math.PI * 2) / n;
+            const startAngle = -Math.PI / 2;
+
+            // Grades de fundo (1 a 5)
+            ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+            ctx.lineWidth = 2;
+            for (let level = 1; level <= 5; level++) {
+                const r = (level / 5) * radius;
+                ctx.beginPath();
+                for (let i = 0; i <= n; i++) {
+                    const angle = startAngle + i * angleStep;
+                    const x = cx + r * Math.cos(angle);
+                    const y = cy + r * Math.sin(angle);
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            // Eixos + rótulos
+            ctx.fillStyle = '#d1d5db';
+            ctx.font = '600 30px system-ui, sans-serif';
+            for (let i = 0; i < n; i++) {
+                const angle = startAngle + i * angleStep;
+                const x = cx + radius * Math.cos(angle);
+                const y = cy + radius * Math.sin(angle);
+                ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+
+                const labelR = radius + 55;
+                const lx = cx + labelR * Math.cos(angle);
+                const ly = cy + labelR * Math.sin(angle);
+                ctx.textAlign = Math.abs(Math.cos(angle)) < 0.2 ? 'center' : (Math.cos(angle) > 0 ? 'left' : 'right');
+                ctx.textBaseline = Math.abs(Math.sin(angle)) < 0.2 ? 'middle' : (Math.sin(angle) > 0 ? 'top' : 'bottom');
+                ctx.fillText(ratings[i].label, lx, ly);
+            }
+
+            // Polígono de valores
+            ctx.beginPath();
+            ratings.forEach((r, i) => {
+                const angle = startAngle + i * angleStep;
+                const rad = (r.value / 5) * radius;
+                const x = cx + rad * Math.cos(angle);
+                const y = cy + rad * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            });
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(217, 164, 65, 0.35)';
+            ctx.fill();
+            ctx.strokeStyle = '#e8be6e';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Pontos nos vértices
+            ratings.forEach((r, i) => {
+                const angle = startAngle + i * angleStep;
+                const rad = (r.value / 5) * radius;
+                const x = cx + rad * Math.cos(angle);
+                const y = cy + rad * Math.sin(angle);
+                ctx.beginPath();
+                ctx.arc(x, y, 9, 0, Math.PI * 2);
+                ctx.fillStyle = '#d9a441';
+                ctx.fill();
+            });
+        }
+
+        function generateShareImage() {
+            const canvas = document.getElementById('share-canvas');
+            const ctx = canvas.getContext('2d');
+            const W = canvas.width, H = canvas.height;
+
+            // Fundo
+            const bg = ctx.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, '#241a13');
+            bg.addColorStop(1, '#140e0a');
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, W, H);
+
+            const coffeeName = document.getElementById('coffee-name').value || 'Café sem nome';
+            const roasteryName = document.getElementById('roastery-name').value;
+            const roast = document.getElementById('review-roast').value;
+            const process = document.getElementById('review-process').value;
+            const variety = document.getElementById('variety').value;
+            const temp = document.getElementById('review-temp').value;
+            const grind = document.getElementById('review-grind').value;
+            const notes = document.getElementById('review-notes').value;
+            const ratings = getRatings();
+
+            // Marca d'água
+            ctx.fillStyle = '#a08b76';
+            ctx.font = '600 28px system-ui, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+            ctx.fillText('☕ BrewCalc', 60, 80);
+
+            // Nome do café
+            ctx.fillStyle = '#f3e9dd';
+            ctx.font = "700 64px ui-serif, Georgia, 'Times New Roman', serif";
+            ctx.textAlign = 'center';
+            let y = wrapCanvasText(ctx, coffeeName, W / 2, 190, W - 140, 68);
+
+            // Torrefação
+            if (roasteryName) {
+                ctx.fillStyle = '#a08b76';
+                ctx.font = '500 34px system-ui, sans-serif';
+                ctx.fillText(roasteryName, W / 2, y + 10);
+                y += 60;
+            } else {
+                y += 10;
+            }
+
+            // Detalhes (grid 2 colunas)
+            const details = [
+                ['Torra', roast], ['Processo', process],
+                ['Variedade', variety || '—'], ['Água', temp || '—'],
+                ['Moagem', grind]
+            ].filter(([, v]) => v);
+
+            ctx.textAlign = 'left';
+            const colW = (W - 120) / 2;
+            let dx = 60, dy = y + 40;
+            details.forEach(([label, value], i) => {
+                const col = i % 2;
+                const row = Math.floor(i / 2);
+                const px = 60 + col * colW;
+                const py = dy + row * 90;
+                ctx.fillStyle = '#8a7360';
+                ctx.font = '600 24px system-ui, sans-serif';
+                ctx.fillText(label.toUpperCase(), px, py);
+                ctx.fillStyle = '#e5d8c8';
+                ctx.font = '600 34px system-ui, sans-serif';
+                ctx.fillText(value, px, py + 38);
+            });
+
+            const detailRows = Math.ceil(details.length / 2);
+            let chartY = dy + detailRows * 90 + 60;
+
+            // Gráfico de radar
+            const chartRadius = 340;
+            const chartCenterY = chartY + chartRadius + 70;
+            drawRadarChart(ctx, W / 2, chartCenterY, chartRadius, ratings);
+
+            // Nota média
+            const avg = (ratings.reduce((s, r) => s + r.value, 0) / ratings.length).toFixed(1);
+            ctx.fillStyle = '#f3e9dd';
+            ctx.font = '700 56px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(avg, W / 2, chartCenterY - 10);
+            ctx.fillStyle = '#a08b76';
+            ctx.font = '500 22px system-ui, sans-serif';
+            ctx.fillText('MÉDIA', W / 2, chartCenterY + 24);
+
+            let afterChartY = chartCenterY + chartRadius + 100;
+
+            // Notas de degustação
+            if (notes) {
+                ctx.fillStyle = '#e8be6e';
+                ctx.font = 'italic 400 32px system-ui, sans-serif';
+                ctx.textAlign = 'center';
+                afterChartY = wrapCanvasText(ctx, `"${notes}"`, W / 2, afterChartY, W - 160, 42);
+            }
+
+            // Rodapé
+            ctx.fillStyle = '#6b5a48';
+            ctx.font = '600 26px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('BrewCalc', W / 2, H - 80);
+            ctx.fillStyle = '#8a7360';
+            ctx.font = '500 26px system-ui, sans-serif';
+            ctx.fillText('fgovoni.github.io/brewcalc', W / 2, H - 46);
+
+            document.getElementById('share-preview').classList.remove('hidden');
+            document.getElementById('share-preview').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            if (navigator.share && navigator.canShare) {
+                document.getElementById('share-btn').classList.remove('hidden');
+            }
+        }
+
+        function canvasToBlob(canvas) {
+            return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        }
+
+        async function downloadShareImage() {
+            const canvas = document.getElementById('share-canvas');
+            const blob = await canvasToBlob(canvas);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const coffeeName = (document.getElementById('coffee-name').value || 'cafe').trim().replace(/\s+/g, '-').toLowerCase();
+            a.href = url;
+            a.download = `brewcalc-${coffeeName}.png`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function shareImage() {
+            const canvas = document.getElementById('share-canvas');
+            const blob = await canvasToBlob(canvas);
+            const coffeeName = document.getElementById('coffee-name').value || 'Café';
+            const file = new File([blob], 'brewcalc.png', { type: 'image/png' });
+            try {
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: coffeeName });
+                } else {
+                    downloadShareImage();
+                }
+            } catch (e) { /* usuário cancelou o compartilhamento — nada a fazer */ }
+        }
+
+        // ---------- Tema claro/escuro ----------
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            const btn = document.getElementById('theme-toggle');
+            if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+            const metaTheme = document.getElementById('theme-color-meta');
+            if (metaTheme) metaTheme.setAttribute('content', theme === 'light' ? '#f6efe3' : '#1b1410');
+            try { localStorage.setItem('brewcalc-theme', theme); } catch (e) { /* localStorage indisponível — ignora */ }
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'dark';
+            applyTheme(current === 'dark' ? 'light' : 'dark');
+        }
+
+        function syncThemeToggleIcon() {
+            const current = document.documentElement.getAttribute('data-theme') || 'dark';
+            applyTheme(current);
+        }
+
+        syncThemeToggleIcon();
+        buildRatingSliders();
+        loadSettings();
+        update('device');
+    </script>
+</body>
+</html>
