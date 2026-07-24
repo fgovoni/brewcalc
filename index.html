@@ -112,6 +112,18 @@
         }
 
         .tabs { display: flex; gap: 8px; margin-bottom: 16px; background: var(--panel); padding: 4px; border-radius: 12px; }
+
+        .brew-summary {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 13px;
+            color: var(--muted-light);
+            margin-bottom: 16px;
+            line-height: 1.4;
+        }
+        .brew-summary b { color: var(--blue-light); }
         .tab-btn {
             flex: 1; padding: 10px; border: none; background: transparent; color: var(--muted);
             font-weight: 600; font-size: 14px; border-radius: 9px; cursor: pointer; transition: background-color .15s, color .15s;
@@ -133,10 +145,35 @@
         .text-input::placeholder, textarea::placeholder { color: var(--muted); }
         .text-input:focus-visible, textarea:focus-visible { box-shadow: 0 0 0 2px var(--blue); }
 
+        .date-field-wrap { position: relative; }
+        .date-native {
+            color: transparent;
+            cursor: pointer;
+        }
+        .date-native::-webkit-datetime-edit,
+        .date-native::-webkit-datetime-edit-fields-wrapper,
+        .date-native::-webkit-datetime-edit-text,
+        .date-native::-webkit-datetime-edit-month-field,
+        .date-native::-webkit-datetime-edit-day-field,
+        .date-native::-webkit-datetime-edit-year-field { color: transparent; }
+        .date-native::-webkit-calendar-picker-indicator { opacity: 1; cursor: pointer; }
+        .date-display {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: var(--text);
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .date-display.placeholder { color: var(--muted); font-weight: 400; }
+
         .rating-row { margin-bottom: 18px; }
         .rating-row:last-child { margin-bottom: 4px; }
         .rating-row-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
-        .rating-row-header span:first-child { font-size: 14px; font-weight: 600; color: var(--muted-light); }
+        .rating-row-header span:first-child { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--muted-light); }
+        .rating-icon { width: 17px; height: 17px; flex-shrink: 0; }
         .rating-value { font-size: 13px; font-weight: 700; color: var(--blue-light); }
         input[type=range].rating-slider::-webkit-slider-thumb { background: var(--blue-light); }
         input[type=range].rating-slider::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--blue-light) var(--value, 50%), #4b5563 var(--value, 50%)); }
@@ -322,6 +359,31 @@
             margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
         }
         .recipe-header h2 { color: var(--muted-light); text-transform: uppercase; letter-spacing: 0.05em; }
+
+        .timer-panel {
+            text-align: center;
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 16px;
+        }
+        .timer-display {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 44px;
+            font-weight: 700;
+            color: var(--blue-light);
+            line-height: 1;
+        }
+        .timer-next-hint { font-size: 12px; color: var(--muted); margin: 8px 0 14px; min-height: 16px; }
+        .timer-controls { display: flex; gap: 10px; }
+        .timer-controls button { flex: 1; margin-bottom: 0; }
+        .btn-timer-reset { background: var(--field) !important; color: var(--text) !important; box-shadow: none !important; }
+        .btn-timer-reset:hover { background: var(--border) !important; }
+
+        .step.step-active {
+            border-left-color: var(--blue-light);
+            background: color-mix(in srgb, var(--blue) 18%, var(--field));
+        }
         .copy-btn {
             font-size: 12px; color: var(--blue-light); background: transparent; border: none;
             font-weight: 600; cursor: pointer; padding: 4px;
@@ -348,7 +410,7 @@
                 </div>
                 <div>
                     <h1>BrewCalc</h1>
-                    <p id="ratio-text">Proporção: 1:16.6</p>
+                    <p id="ratio-text">Proporção: 1:17</p>
                 </div>
             </div>
             <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Alternar tema claro/escuro" onclick="toggleTheme()">🌙</button>
@@ -404,9 +466,9 @@
 
             <label for="ratio-input" class="field-label-inline">Proporção (água : café)</label>
             <div class="stepper" style="margin-bottom:16px;">
-                <button type="button" aria-label="Diminuir proporção em 0.5" onclick="adjustRatio(-0.5)">−</button>
-                <input type="number" id="ratio-input" min="5" max="25" step="0.1" inputmode="decimal" value="16.6" oninput="update('ratio')">
-                <button type="button" aria-label="Aumentar proporção em 0.5" onclick="adjustRatio(0.5)">+</button>
+                <button type="button" aria-label="Diminuir proporção em 1" onclick="adjustRatio(-1)">−</button>
+                <input type="number" id="ratio-input" min="5" max="25" step="1" inputmode="numeric" value="17" oninput="update('ratio')">
+                <button type="button" aria-label="Aumentar proporção em 1" onclick="adjustRatio(1)">+</button>
             </div>
 
             <div class="field-grid">
@@ -468,12 +530,24 @@
                 <h2>Instruções de Despejo</h2>
                 <button type="button" onclick="copyRecipe()" aria-label="Copiar receita" class="copy-btn">Copiar</button>
             </div>
+
+            <div id="timer-panel" class="timer-panel hidden">
+                <div id="timer-display" class="timer-display">0:00</div>
+                <div id="timer-next-hint" class="timer-next-hint">Toque em Iniciar para começar</div>
+                <div class="timer-controls">
+                    <button type="button" id="timer-start-btn" class="btn-primary btn-secondary" onclick="toggleTimer()">Iniciar</button>
+                    <button type="button" class="btn-primary btn-secondary btn-timer-reset" onclick="resetTimer()">Zerar</button>
+                </div>
+            </div>
+
             <div id="steps" aria-live="polite"></div>
         </div>
 
         </div>
 
         <div id="tab-review" role="tabpanel" aria-labelledby="tab-btn-review" class="hidden">
+
+            <div class="brew-summary" id="brew-summary">Preparado com: —</div>
 
             <div class="card">
                 <label for="coffee-name" class="field-label-inline">Nome do café</label>
@@ -485,7 +559,10 @@
                 <div class="field-grid" style="margin-bottom:14px;">
                     <div>
                         <label for="roast-date" class="field-label-inline">Data da torra</label>
-                        <input type="text" id="roast-date" class="text-input" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" style="margin-bottom:0;" oninput="maskDateInput(this)">
+                        <div class="date-field-wrap">
+                            <input type="date" id="roast-date" class="text-input date-native" style="margin-bottom:0;" oninput="onRoastDateChange()">
+                            <span class="date-display placeholder" id="roast-date-display">dd/mm/aaaa</span>
+                        </div>
                     </div>
                     <div>
                         <label for="region" class="field-label-inline">Região</label>
@@ -519,8 +596,8 @@
 
                 <div class="field-grid" style="margin-bottom:14px;">
                     <div>
-                        <label for="review-temp" class="field-label-inline">Temperatura da água</label>
-                        <input type="text" id="review-temp" class="text-input" placeholder="ex: 93°C">
+                        <label for="review-temp" class="field-label-inline">Temperatura da água (°C)</label>
+                        <input type="number" id="review-temp" class="text-input" placeholder="ex: 93" inputmode="decimal" step="1">
                     </div>
                     <div>
                         <label for="review-grind" class="field-label-inline">Nível de moagem</label>
@@ -827,6 +904,7 @@
 
         function clearRecipe() {
             document.getElementById('recipe-container').classList.add('hidden');
+            resetTimer();
         }
 
         function getCurrentRecipe() {
@@ -865,13 +943,13 @@
         function adjustRatio(amount) {
             const input = document.getElementById('ratio-input');
             const current = parseFloat(input.value);
-            input.value = Math.max(5, ((isNaN(current) ? 15 : current) + amount)).toFixed(1);
+            input.value = Math.max(5, Math.round((isNaN(current) ? 15 : current) + amount));
             update('ratio');
         }
 
         function getActiveRatio(recipe) {
             const val = parseFloat(document.getElementById('ratio-input').value);
-            return (!isNaN(val) && val > 0) ? val : recipe.ratio;
+            return (!isNaN(val) && val > 0) ? Math.round(val) : Math.round(recipe.ratio);
         }
 
         function saveSettings() {
@@ -937,7 +1015,7 @@
 
             if (source === 'device' || source === 'recipe') {
                 // Troca de aparelho/receita: volta para a proporção oficial e dosagem recalculada
-                ratioInput.value = recipe.ratio.toFixed(1);
+                ratioInput.value = Math.round(recipe.ratio);
                 const coffeeVal = parseFloat(coffeeInput.value) || 0;
                 waterInput.value = Math.round(coffeeVal * recipe.ratio);
             } else if (source === 'coffee' || source === 'ratio') {
@@ -967,7 +1045,7 @@
             } else {
                 clicksWrap.classList.add('hidden');
             }
-            document.getElementById('ratio-text').innerText = `Proporção: 1:${activeRatio.toFixed(1)}`;
+            document.getElementById('ratio-text').innerText = `Proporção: 1:${activeRatio}`;
             document.getElementById('recipe-note').innerText = recipe.note;
 
             const kasuyaPanel = document.getElementById('kasuya-controls');
@@ -979,6 +1057,114 @@
             }
 
             saveSettings();
+        }
+
+        // ---------- Timer de preparo ----------
+        let timerSteps = [];
+        let timerInterval = null;
+        let timerElapsed = 0;
+        let timerLastIndex = 0;
+        let timerAudioCtx = null;
+
+        function parseTimeToSeconds(t) {
+            const parts = t.split(':').map(Number);
+            return (parts[0] || 0) * 60 + (parts[1] || 0);
+        }
+
+        function formatTimerDisplay(totalSeconds) {
+            const m = Math.floor(totalSeconds / 60);
+            const s = totalSeconds % 60;
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function playTimerBeep() {
+            try {
+                if (!timerAudioCtx) timerAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = timerAudioCtx.createOscillator();
+                const gain = timerAudioCtx.createGain();
+                osc.frequency.value = 880;
+                osc.connect(gain);
+                gain.connect(timerAudioCtx.destination);
+                const now = timerAudioCtx.currentTime;
+                gain.gain.setValueAtTime(0.0001, now);
+                gain.gain.exponentialRampToValueAtTime(0.3, now + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.55);
+            } catch (e) { /* Web Audio indisponível neste navegador — ignora */ }
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        }
+
+        function initTimerForSteps(steps) {
+            timerSteps = steps.map(s => ({ ...s, seconds: parseTimeToSeconds(s.time) }));
+            document.getElementById('timer-panel').classList.remove('hidden');
+            resetTimer();
+        }
+
+        function updateTimerHighlight() {
+            let activeIdx = -1;
+            timerSteps.forEach((s, i) => { if (s.seconds <= timerElapsed) activeIdx = i; });
+            document.querySelectorAll('.step-timed').forEach(el => {
+                const idx = parseInt(el.dataset.stepIndex);
+                el.classList.toggle('step-active', idx === activeIdx);
+            });
+            const hintEl = document.getElementById('timer-next-hint');
+            if (!hintEl) return;
+            const next = timerSteps.find(s => s.seconds > timerElapsed);
+            if (timerInterval === null && timerElapsed === 0) {
+                hintEl.textContent = 'Toque em Iniciar para começar';
+            } else if (next) {
+                hintEl.textContent = `Próximo passo em ${formatTimerDisplay(next.seconds - timerElapsed)}`;
+            } else {
+                hintEl.textContent = 'Última etapa — bom café!';
+            }
+        }
+
+        function updateTimerDisplay() {
+            document.getElementById('timer-display').textContent = formatTimerDisplay(timerElapsed);
+            updateTimerHighlight();
+        }
+
+        function tickTimer() {
+            timerElapsed++;
+            for (let i = 1; i < timerSteps.length; i++) {
+                if (timerSteps[i].seconds === timerElapsed && i > timerLastIndex) {
+                    timerLastIndex = i;
+                    playTimerBeep();
+                }
+            }
+            updateTimerDisplay();
+        }
+
+        function startTimer() {
+            if (timerInterval || timerSteps.length === 0) return;
+            timerInterval = setInterval(tickTimer, 1000);
+            document.getElementById('timer-start-btn').textContent = 'Pausar';
+            updateTimerHighlight();
+        }
+
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            const btn = document.getElementById('timer-start-btn');
+            if (btn) btn.textContent = 'Continuar';
+        }
+
+        function toggleTimer() {
+            if (timerInterval) pauseTimer(); else startTimer();
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            timerElapsed = 0;
+            timerLastIndex = 0;
+            const btn = document.getElementById('timer-start-btn');
+            if (btn) btn.textContent = 'Iniciar';
+            const displayEl = document.getElementById('timer-display');
+            if (displayEl) displayEl.textContent = '0:00';
+            document.querySelectorAll('.step-timed').forEach(el => el.classList.remove('step-active'));
+            updateTimerHighlight();
         }
 
         function generateRecipe() {
@@ -1020,15 +1206,18 @@
                 steps = recipe.buildSteps(coffee, water);
             }
 
-            steps.forEach(s => {
+            steps.forEach((s, i) => {
                 const el = document.createElement('div');
-                el.className = 'step';
+                el.className = 'step step-timed';
+                el.dataset.stepIndex = i;
                 el.innerHTML = `
                     <div class="step-time">${s.time}</div>
                     <div class="step-desc">${s.desc}</div>
                 `;
                 stepsContainer.appendChild(el);
             });
+
+            initTimerForSteps(steps);
         }
 
         function copyRecipe() {
@@ -1069,16 +1258,46 @@
             if (goingToReview) {
                 // Preenche temperatura/moagem com o que está na calculadora, só se estiver vazio
                 const tempField = document.getElementById('review-temp');
-                if (!tempField.value) tempField.value = document.getElementById('temp-sug').innerText;
+                if (!tempField.value) {
+                    const tempMatch = document.getElementById('temp-sug').innerText.match(/\d+/);
+                    if (tempMatch) tempField.value = tempMatch[0];
+                }
                 const grindField = document.getElementById('review-grind');
                 const currentGrind = document.getElementById('grind-sug').innerText;
                 if (grindLadder.includes(currentGrind)) grindField.value = currentGrind;
+                updateBrewSummary();
             }
+        }
+
+        function getBrewSummary() {
+            const deviceKey = document.getElementById('device').value;
+            const recipe = getCurrentRecipe();
+            const deviceLabel = deviceData[deviceKey].label;
+            const shortRecipeLabel = recipe.label.replace(/\s*\([^)]*\)\s*$/, '');
+            const ratio = getActiveRatio(recipe);
+            const coffee = document.getElementById('coffee').value;
+            const water = document.getElementById('water').value;
+            const method = `${deviceLabel} · ${shortRecipeLabel}`;
+            const dose = `${coffee}g : ${water}ml (1:${ratio})`;
+            return { method, dose };
+        }
+
+        function updateBrewSummary() {
+            const { method, dose } = getBrewSummary();
+            document.getElementById('brew-summary').innerHTML = `Preparado com: <b>${method}</b><br>${dose}`;
         }
 
         // ---------- Avaliação sensorial ----------
         const ratingLabels = ['Aroma', 'Doçura', 'Acidez', 'Amargor', 'Sabor', 'Corpo', 'Retrogosto'];
-        const ratingIcons = ['👃', '🍯', '🍋', '🍫', '👅', '💧', '⏳'];
+        const ratingIcons = [
+            '<svg class="rating-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M8 21c0-2 2-2 2-4s-2-2-2-4 2-2 2-4"/><path d="M14 21c0-2 2-2 2-4s-2-2-2-4 2-2 2-4"/></svg>', // Aroma — linhas de vapor/aroma
+            '<svg class="rating-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M5 12h14M12 5v14"/></svg>', // Doçura — cubo de açúcar
+            '<svg class="rating-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M4.8 7.2l14.4 9.6M4.8 16.8l14.4-9.6"/></svg>', // Acidez — gomo cítrico
+            '<svg class="rating-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 000 18z" fill="currentColor" stroke="none"/></svg>', // Amargor — contraste claro/escuro
+            '<svg class="rating-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 15c2-5 4-5 6 0s4 5 6 0 4-5 4 0"/></svg>', // Sabor — onda de sabor
+            '<svg class="rating-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 3c4 5 7 8.5 7 12a7 7 0 01-14 0c0-3.5 3-7 7-12z"/></svg>', // Corpo — gota (viscosidade)
+            '<svg class="rating-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3c0 4 3 6 5 8-2 2-5 4-5 8M17 3c0 4-3 6-5 8 2 2 5 4 5 8"/></svg>' // Retrogosto — ampulheta
+        ];
 
         function buildRatingSliders() {
             const container = document.getElementById('rating-sliders');
@@ -1096,6 +1315,15 @@
                 container.appendChild(row);
             });
             ratingLabels.forEach((_, i) => onRatingInput(`rating-${i}`));
+
+            // Solta o foco de qualquer campo de texto (ex: notas) antes do slider assumir o toque,
+            // evitando que o teclado do celular "prenda" o foco no campo anterior
+            container.addEventListener('touchstart', () => {
+                const active = document.activeElement;
+                if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT')) {
+                    active.blur();
+                }
+            }, { passive: true });
         }
 
         function onRatingInput(id) {
@@ -1106,18 +1334,29 @@
 
         function getRatings() {
             return ratingLabels.map((label, i) => ({
-                label: `${ratingIcons[i]} ${label}`,
+                label,
                 value: parseInt(document.getElementById(`rating-${i}`).value)
             }));
         }
 
         // ---------- Geração da imagem para Stories (1080x1920) ----------
-        function maskDateInput(el) {
-            let digits = el.value.replace(/\D/g, '').slice(0, 8);
-            let out = digits;
-            if (digits.length > 4) out = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-            else if (digits.length > 2) out = `${digits.slice(0, 2)}/${digits.slice(2)}`;
-            el.value = out;
+        function formatDateBR(isoDate) {
+            if (!isoDate) return '';
+            const [y, m, d] = isoDate.split('-');
+            return `${d}/${m}/${y}`;
+        }
+
+        function onRoastDateChange() {
+            const input = document.getElementById('roast-date');
+            const display = document.getElementById('roast-date-display');
+            const formatted = formatDateBR(input.value);
+            if (formatted) {
+                display.textContent = formatted;
+                display.classList.remove('placeholder');
+            } else {
+                display.textContent = 'dd/mm/aaaa';
+                display.classList.add('placeholder');
+            }
         }
 
         function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
@@ -1222,7 +1461,7 @@
 
             const coffeeName = document.getElementById('coffee-name').value || 'Café sem nome';
             const roasteryName = document.getElementById('roastery-name').value;
-            const roastDate = document.getElementById('roast-date').value;
+            const roastDate = formatDateBR(document.getElementById('roast-date').value);
             const region = document.getElementById('region').value;
             const roast = document.getElementById('review-roast').value;
             const process = document.getElementById('review-process').value;
@@ -1231,6 +1470,7 @@
             const grind = document.getElementById('review-grind').value;
             const notes = document.getElementById('review-notes').value;
             const ratings = getRatings();
+            const brew = getBrewSummary();
 
             // Marca d'água / nome do app
             ctx.fillStyle = '#c9a876';
@@ -1255,45 +1495,57 @@
                 y += 10;
             }
 
-            // Detalhes (grid 2 colunas)
-            const details = [
+            // Método de preparo (aparelho + receita/barista)
+            ctx.fillStyle = '#e8be6e';
+            ctx.font = '600 28px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            y = wrapCanvasText(ctx, brew.method, W / 2, y + 20, W - 140, 36) + 6;
+
+            // Duas colunas: café (esquerda) e receita (direita, com notas no final)
+            const leftDetails = [
                 ['Torra', roast], ['Data da torra', roastDate || '—'],
                 ['Processo', process], ['Região', region || '—'],
-                ['Variedade', variety || '—'], ['Água', temp || '—'],
+                ['Variedade', variety || '—']
+            ].filter(([, v]) => v);
+
+            const rightDetails = [
+                ['Dose', brew.dose], ['Água', temp ? `${temp}°C` : '—'],
                 ['Moagem', grind]
             ].filter(([, v]) => v);
 
             ctx.textAlign = 'left';
             const colW = (W - 120) / 2;
-            let dy = y + 40;
-            details.forEach(([label, value], i) => {
-                const col = i % 2;
-                const row = Math.floor(i / 2);
-                const px = 60 + col * colW;
-                const py = dy + row * 90;
-                ctx.fillStyle = '#8a7360';
-                ctx.font = '600 24px system-ui, sans-serif';
-                ctx.fillText(label.toUpperCase(), px, py);
-                ctx.fillStyle = '#e5d8c8';
-                ctx.font = '600 34px system-ui, sans-serif';
-                ctx.fillText(value, px, py + 38);
-            });
+            const leftX = 60;
+            const rightX = 60 + colW;
+            const dy = y + 40;
 
-            const detailRows = Math.ceil(details.length / 2);
-            let afterDetailsY = dy + detailRows * 90 + 10;
+            function renderDetailColumn(items, x, startY) {
+                items.forEach(([label, value], idx) => {
+                    const py = startY + idx * 90;
+                    ctx.fillStyle = '#8a7360';
+                    ctx.font = '600 24px system-ui, sans-serif';
+                    ctx.fillText(label.toUpperCase(), x, py);
+                    ctx.fillStyle = '#e5d8c8';
+                    ctx.font = '600 34px system-ui, sans-serif';
+                    ctx.fillText(value, x, py + 38);
+                });
+                return startY + items.length * 90;
+            }
 
-            // Notas sensoriais — junto do bloco de detalhes, com rótulo próprio
+            const leftBottomY = renderDetailColumn(leftDetails, leftX, dy);
+            let rightBottomY = renderDetailColumn(rightDetails, rightX, dy);
+
+            // Notas sensoriais — no final da coluna da receita
             if (notes) {
                 ctx.fillStyle = '#8a7360';
                 ctx.font = '600 24px system-ui, sans-serif';
-                ctx.textAlign = 'left';
-                ctx.fillText('NOTAS SENSORIAIS', 60, afterDetailsY);
+                ctx.fillText('NOTAS SENSORIAIS', rightX, rightBottomY);
                 ctx.fillStyle = '#e8be6e';
-                ctx.font = 'italic 400 30px system-ui, sans-serif';
-                afterDetailsY = wrapCanvasText(ctx, notes, 60, afterDetailsY + 40, W - 120, 38);
+                ctx.font = 'italic 400 28px system-ui, sans-serif';
+                rightBottomY = wrapCanvasText(ctx, notes, rightX, rightBottomY + 36, colW - 20, 34) + 6;
             }
 
-            let chartY = afterDetailsY + 30;
+            let chartY = Math.max(leftBottomY, rightBottomY) + 30;
 
             // Gráfico de radar
             const chartRadius = 340;
