@@ -1,5 +1,10 @@
 # BrewCalc
 
+![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=flat-square&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=flat-square&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=flat-square&logo=javascript&logoColor=%23F7DF1E)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)
+
 Uma calculadora interativa e aplicativo de avaliação para receitas de café coado, baseada em métodos de baristas campeões mundiais.
 
 ## 🚀 Funcionalidades
