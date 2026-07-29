@@ -8,6 +8,7 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232a1f18'/%3E%3Cg transform='rotate(-18 32 32)'%3E%3Cellipse cx='32' cy='32' rx='17' ry='25' fill='%23d9a441'/%3E%3Cpath d='M32 10c-6 9-6 33 0 44' stroke='%232a1f18' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232a1f18'/%3E%3Cg transform='rotate(-18 32 32)'%3E%3Cellipse cx='32' cy='32' rx='17' ry='25' fill='%23d9a441'/%3E%3Cpath d='M32 10c-6 9-6 33 0 44' stroke='%232a1f18' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E">
     <title>BrewCalc</title>
+    <script data-goatcounter="https://fgovoni-brewcalc.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
     <script>
         // Aplica o tema antes do primeiro paint, para evitar flash da cor errada
         (function () {
@@ -369,7 +370,6 @@
         }
         .btn-primary:hover { background: var(--blue); }
         .btn-primary:active { background: var(--blue-darker); }
-        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
         #form-error { color: var(--red-light); font-size: 14px; text-align: center; margin: 0 0 16px; }
 
@@ -703,18 +703,13 @@
                     </div>
                     <div>
                         <label for="review-grind" class="field-label-inline">Nível de moagem</label>
-                        <select id="review-grind" aria-label="Nível de moagem" style="margin-bottom:8px;">
+                        <select id="review-grind" aria-label="Nível de moagem">
                             <option value="Fina">Fina</option>
                             <option value="Média-Fina" selected>Média-Fina</option>
                             <option value="Média">Média</option>
                             <option value="Média-Grossa">Média-Grossa</option>
                             <option value="Grossa">Grossa</option>
                         </select>
-                        <div class="mini-stepper">
-                            <button type="button" aria-label="Diminuir cliques" onclick="adjustReviewClicks(-1)">−</button>
-                            <input type="number" id="review-clicks" min="5" max="35" step="1" inputmode="numeric" placeholder="cliques" oninput="onReviewClicksInput()">
-                            <button type="button" aria-label="Aumentar cliques" onclick="adjustReviewClicks(1)">+</button>
-                        </div>
                     </div>
                 </div>
 
@@ -806,19 +801,6 @@
         function onClicksInput() {
             document.getElementById('grind-derived').textContent = `(${clicksToGrindLevel(document.getElementById('clicks-input').value)})`;
             saveSettings();
-        }
-
-        function onReviewClicksInput() {
-            const val = document.getElementById('review-clicks').value;
-            if (val === '') return;
-            document.getElementById('review-grind').value = clicksToGrindLevel(val);
-        }
-
-        function adjustReviewClicks(amount) {
-            const input = document.getElementById('review-clicks');
-            const current = parseInt(input.value);
-            input.value = Math.max(5, (isNaN(current) ? 18 : current) + amount);
-            onReviewClicksInput();
         }
 
         // Todas as receitas abaixo foram conferidas contra fontes primárias
@@ -1418,9 +1400,6 @@
         let timerElapsed = 0;
         let timerLastIndex = 0;
         let timerAudioCtx = null;
-        let countdownInterval = null;
-        let isCountingDown = false;
-        let wakeLock = null;
 
         function parseTimeToSeconds(t) {
             const parts = t.split(':').map(Number);
@@ -1433,59 +1412,23 @@
             return `${m}:${s.toString().padStart(2, '0')}`;
         }
 
-        function playBeep(freq, duration, vibratePattern) {
+        function playTimerBeep() {
             try {
                 if (!timerAudioCtx) timerAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = timerAudioCtx.createOscillator();
                 const gain = timerAudioCtx.createGain();
-                osc.frequency.value = freq;
+                osc.frequency.value = 880;
                 osc.connect(gain);
                 gain.connect(timerAudioCtx.destination);
                 const now = timerAudioCtx.currentTime;
                 gain.gain.setValueAtTime(0.0001, now);
                 gain.gain.exponentialRampToValueAtTime(0.3, now + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
                 osc.start(now);
-                osc.stop(now + duration + 0.05);
+                osc.stop(now + 0.55);
             } catch (e) { /* Web Audio indisponível neste navegador — ignora */ }
-            if (navigator.vibrate && vibratePattern) navigator.vibrate(vibratePattern);
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
         }
-
-        function playTimerBeep() {
-            playBeep(880, 0.5, [200, 100, 200]);
-        }
-
-        function playCountdownTick() {
-            playBeep(600, 0.15, [80]);
-        }
-
-        function playCountdownGo() {
-            playBeep(1046, 0.35, [200]);
-        }
-
-        // ---------- Wake Lock (mantém a tela ligada durante o timer) ----------
-        async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    wakeLock.addEventListener('release', () => { wakeLock = null; });
-                }
-            } catch (e) { /* Wake Lock indisponível ou negado pelo navegador — ignora */ }
-        }
-
-        function releaseWakeLock() {
-            if (wakeLock) {
-                wakeLock.release().catch(() => {});
-                wakeLock = null;
-            }
-        }
-
-        document.addEventListener('visibilitychange', () => {
-            // Reconquista o wake lock se o app voltar a ficar visível com o timer rodando
-            if (document.visibilityState === 'visible' && timerInterval) {
-                requestWakeLock();
-            }
-        });
 
         function initTimerForSteps(steps) {
             timerSteps = steps.map(s => ({ ...s, seconds: parseTimeToSeconds(s.time) }));
@@ -1529,60 +1472,30 @@
         }
 
         function startTimer() {
-            if (timerInterval || timerSteps.length === 0 || isCountingDown) return;
-            isCountingDown = true;
-            const startBtn = document.getElementById('timer-start-btn');
-            const displayEl = document.getElementById('timer-display');
-            const hintEl = document.getElementById('timer-next-hint');
-            if (startBtn) startBtn.disabled = true;
-            let count = 3;
-            if (displayEl) displayEl.textContent = String(count);
-            if (hintEl) hintEl.textContent = 'Prepare-se...';
-            playCountdownTick();
-            countdownInterval = setInterval(() => {
-                count--;
-                if (count > 0) {
-                    if (displayEl) displayEl.textContent = String(count);
-                    playCountdownTick();
-                } else {
-                    clearInterval(countdownInterval);
-                    countdownInterval = null;
-                    isCountingDown = false;
-                    if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Pausar'; }
-                    if (displayEl) displayEl.textContent = '0:00';
-                    playCountdownGo();
-                    requestWakeLock();
-                    timerInterval = setInterval(tickTimer, 1000);
-                    updateTimerHighlight();
-                }
-            }, 1000);
+            if (timerInterval || timerSteps.length === 0) return;
+            timerInterval = setInterval(tickTimer, 1000);
+            document.getElementById('timer-start-btn').textContent = 'Pausar';
+            updateTimerHighlight();
         }
 
         function pauseTimer() {
             clearInterval(timerInterval);
             timerInterval = null;
-            releaseWakeLock();
             const btn = document.getElementById('timer-start-btn');
             if (btn) btn.textContent = 'Continuar';
         }
 
         function toggleTimer() {
-            if (timerInterval) { pauseTimer(); return; }
-            if (isCountingDown) return;
-            startTimer();
+            if (timerInterval) pauseTimer(); else startTimer();
         }
 
         function resetTimer() {
             clearInterval(timerInterval);
-            clearInterval(countdownInterval);
             timerInterval = null;
-            countdownInterval = null;
-            isCountingDown = false;
             timerElapsed = 0;
             timerLastIndex = 0;
-            releaseWakeLock();
             const btn = document.getElementById('timer-start-btn');
-            if (btn) { btn.textContent = 'Iniciar'; btn.disabled = false; }
+            if (btn) btn.textContent = 'Iniciar';
             const displayEl = document.getElementById('timer-display');
             if (displayEl) displayEl.textContent = '0:00';
             document.querySelectorAll('.step-timed').forEach(el => el.classList.remove('step-active'));
@@ -1679,12 +1592,12 @@
             reviewPanel.classList.toggle('hidden', !goingToReview);
 
             if (goingToReview) {
-                // Preenche temperatura/cliques com o que está na calculadora, só se estiver vazio
+                // Preenche temperatura/moagem com o que está na calculadora, só se estiver vazio
                 const tempField = document.getElementById('review-temp');
                 if (!tempField.value) tempField.value = document.getElementById('temp-input').value;
-                const clicksField = document.getElementById('review-clicks');
-                if (!clicksField.value) clicksField.value = document.getElementById('clicks-input').value;
-                onReviewClicksInput();
+                const grindField = document.getElementById('review-grind');
+                const currentGrind = clicksToGrindLevel(document.getElementById('clicks-input').value);
+                if (grindLadder.includes(currentGrind)) grindField.value = currentGrind;
                 updateBrewSummary();
             }
         }
@@ -1933,10 +1846,9 @@
                 ['Variedade', variety || '—']
             ].filter(([, v]) => v);
 
-            const clicksVal = document.getElementById('review-clicks').value;
             const rightDetails = [
                 ['Dose', brew.dose], ['Água', temp ? `${temp}°C` : '—'],
-                ['Moagem', grind], ['Cliques', clicksVal ? `${clicksVal} cliques` : '—']
+                ['Moagem', grind]
             ].filter(([, v]) => v);
 
             ctx.textAlign = 'left';
