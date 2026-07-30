@@ -8,7 +8,6 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232a1f18'/%3E%3Cg transform='rotate(-18 32 32)'%3E%3Cellipse cx='32' cy='32' rx='17' ry='25' fill='%23d9a441'/%3E%3Cpath d='M32 10c-6 9-6 33 0 44' stroke='%232a1f18' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232a1f18'/%3E%3Cg transform='rotate(-18 32 32)'%3E%3Cellipse cx='32' cy='32' rx='17' ry='25' fill='%23d9a441'/%3E%3Cpath d='M32 10c-6 9-6 33 0 44' stroke='%232a1f18' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E">
     <title>BrewCalc</title>
-    <script data-goatcounter="https://fgovoni-brewcalc.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
     <script>
         // Aplica o tema antes do primeiro paint, para evitar flash da cor errada
         (function () {
@@ -1077,10 +1076,15 @@
                 isCustom: true,
                 customId: data.id,
                 buildSteps(coffee, water) {
-                    return data.steps.map(s => ({
-                        time: s.time,
-                        desc: `<b>${s.desc}:</b> despeje até <b>${Math.round(water * s.pct)}g</b>.`
-                    }));
+                    return data.steps.map(s => {
+                        if (s.pct === null || s.pct === undefined) {
+                            return { time: s.time, desc: `${s.desc}.` };
+                        }
+                        return {
+                            time: s.time,
+                            desc: `<b>${s.desc}:</b> despeje até <b>${Math.round(water * s.pct)}g</b>.`
+                        };
+                    });
                 }
             };
         }
@@ -1096,7 +1100,7 @@
                 </div>
                 <div class="field-grid" style="gap:8px; margin-bottom:8px;">
                     <input type="text" class="text-input step-time-input" placeholder="Tempo (0:45)" value="${time || ''}" style="margin-bottom:0;">
-                    <input type="number" class="text-input step-amount-input" placeholder="Meta (g)" value="${amount || ''}" style="margin-bottom:0;">
+                    <input type="number" class="text-input step-amount-input" placeholder="Meta (g) — opcional" value="${(amount !== undefined && amount !== null) ? amount : ''}" style="margin-bottom:0;">
                 </div>
                 <input type="text" class="text-input step-desc-input" placeholder="Descrição (ex: Bloom, despejo circular)" value="${desc || ''}" style="margin-bottom:0;">
             `;
@@ -1121,7 +1125,11 @@
                 document.getElementById('custom-ref-water').value = editData.refWater;
                 document.getElementById('custom-clicks').value = editData.clicksDefault;
                 document.getElementById('custom-temp').value = editData.tempC;
-                editData.steps.forEach(s => addCustomStepRow(s.time, Math.round(s.pct * editData.refWater), s.desc));
+                editData.steps.forEach(s => addCustomStepRow(
+                    s.time,
+                    (s.pct === null || s.pct === undefined) ? '' : Math.round(s.pct * editData.refWater),
+                    s.desc
+                ));
             } else {
                 const refWater = parseFloat(document.getElementById('water').value) || 500;
                 document.getElementById('custom-name').value = '';
@@ -1175,12 +1183,19 @@
             const steps = [];
             for (const row of rows) {
                 const time = row.querySelector('.step-time-input').value.trim();
-                const amount = parseFloat(row.querySelector('.step-amount-input').value);
+                const amountRaw = row.querySelector('.step-amount-input').value.trim();
                 const desc = row.querySelector('.step-desc-input').value.trim();
                 if (!/^\d{1,2}:\d{2}$/.test(time)) { showBuilderError(`Tempo inválido: "${time}". Use o formato m:ss, ex: 0:45.`); return; }
-                if (!amount || amount <= 0) { showBuilderError('Cada passo precisa de uma meta em gramas maior que zero.'); return; }
                 if (!desc) { showBuilderError('Cada passo precisa de uma descrição curta.'); return; }
-                steps.push({ time, pct: amount / refWater, desc });
+
+                if (amountRaw === '') {
+                    // Passo sem meta em gramas — apenas uma observação (ex: "Tempo estimado para drenagem total")
+                    steps.push({ time, pct: null, desc });
+                } else {
+                    const amount = parseFloat(amountRaw);
+                    if (!amount || amount <= 0) { showBuilderError('Se informar uma meta, ela precisa ser maior que zero (ou deixe em branco para um passo sem meta).'); return; }
+                    steps.push({ time, pct: amount / refWater, desc });
+                }
             }
 
             const deviceKey = document.getElementById('device').value;
