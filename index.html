@@ -1911,9 +1911,31 @@
             return `${m}:${s.toString().padStart(2, '0')}`;
         }
 
+        // Android e iOS entregam o AudioContext suspenso: sem um resume() dentro
+        // de um gesto do usuário, os beeps ficam mudos (a vibração ainda funciona).
+        function ensureAudioReady() {
+            try {
+                if (!timerAudioCtx) {
+                    const Ctx = window.AudioContext || window.webkitAudioContext;
+                    if (!Ctx) return;
+                    timerAudioCtx = new Ctx();
+                    // Buffer mudo de 1 sample: destrava a saída de áudio no celular
+                    const src = timerAudioCtx.createBufferSource();
+                    src.buffer = timerAudioCtx.createBuffer(1, 1, 22050);
+                    src.connect(timerAudioCtx.destination);
+                    src.start(0);
+                }
+                if (timerAudioCtx.state === 'suspended') timerAudioCtx.resume();
+            } catch (e) { /* Web Audio indisponível neste navegador — ignora */ }
+        }
+
+        // Destrava no primeiro toque em qualquer lugar, antes mesmo de iniciar o timer
+        document.addEventListener('pointerdown', ensureAudioReady, { once: true, capture: true });
+
         function playBeep(freq, duration, vibratePattern) {
             try {
-                if (!timerAudioCtx) timerAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                ensureAudioReady();
+                if (!timerAudioCtx) throw new Error('sem Web Audio');
                 const osc = timerAudioCtx.createOscillator();
                 const gain = timerAudioCtx.createGain();
                 osc.frequency.value = freq;
@@ -1959,9 +1981,11 @@
         }
 
         document.addEventListener('visibilitychange', () => {
-            // Reconquista o wake lock se o app voltar a ficar visível com o timer rodando
+            // Reconquista o wake lock e o áudio se o app voltar a ficar visível
+            // com o timer rodando — o Android suspende os dois em segundo plano
             if (document.visibilityState === 'visible' && timerInterval) {
                 requestWakeLock();
+                ensureAudioReady();
             }
         });
 
@@ -2008,6 +2032,7 @@
 
         function startTimer() {
             if (timerInterval || timerSteps.length === 0 || isCountingDown) return;
+            ensureAudioReady(); // ainda dentro do clique — é aqui que o celular libera o áudio
             isCountingDown = true;
             const startBtn = document.getElementById('timer-start-btn');
             const displayEl = document.getElementById('timer-display');
