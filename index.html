@@ -38,6 +38,7 @@
             --stone: #7c6a56;
             --stone-light: #a8927e;
             --green: #7cae6f;
+            --track: #4d3a2c;
             --glow: rgba(217, 164, 65, 0.08);
             color-scheme: dark;
         }
@@ -49,7 +50,7 @@
             --panel: #ecdcb8;
             --border: #ddc194;
             --text: #241a10;
-            --muted: #8a6f52;
+            --muted: #7a6045;
             --muted-light: #4a3823;
             --blue: #c2542f;
             --blue-dark: #1c1712;
@@ -61,6 +62,7 @@
             --stone: #6b5a48;
             --stone-light: #8a7461;
             --green: #4f7a44;
+            --track: #d0b183;
             --glow: rgba(255, 255, 255, 0.14);
             color-scheme: light;
         }
@@ -178,7 +180,7 @@
         .rating-icon { width: 17px; height: 17px; flex-shrink: 0; }
         .rating-value { font-size: 13px; font-weight: 700; color: var(--blue-light); }
         input[type=range].rating-slider::-webkit-slider-thumb { background: var(--blue-light); }
-        input[type=range].rating-slider::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--blue-light) var(--value, 50%), #4b5563 var(--value, 50%)); }
+        input[type=range].rating-slider::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--blue-light) var(--value, 50%), var(--track) var(--value, 50%)); }
         input[type=range].rating-slider::-moz-range-progress { background: var(--blue-light); }
 
         #share-canvas { width: 100%; border-radius: 12px; margin-bottom: 16px; background: var(--bg); }
@@ -186,12 +188,19 @@
         .btn-secondary { margin-bottom: 0; }
         #ratio-text { font-size: 11px; color: var(--muted); margin: 0; text-transform: uppercase; letter-spacing: 0.08em; }
 
-        .sr-only {
-            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-            overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
-        }
-
         .field-label-inline { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+
+        .ratio-label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+        .ratio-official {
+            background: transparent; border: none; padding: 0 0 6px; cursor: pointer;
+            font-family: inherit; font-size: 12px; font-weight: 600; color: var(--blue-light);
+            text-decoration: underline; text-underline-offset: 2px;
+        }
+        .ratio-official:hover { color: var(--blue-lighter); }
+        #recipe-ref-dose {
+            font-size: 12px; color: var(--muted); margin: -12px 0 16px; line-height: 1.4;
+        }
+        #recipe-ref-dose b { color: var(--muted-light); }
 
         select {
             width: 100%;
@@ -234,13 +243,6 @@
         .info-icon { width: 13px; height: 13px; flex-shrink: 0; }
         .info-col:first-child { border-right: 1px solid var(--border); }
         .info-col span:first-child { font-weight: 700; color: var(--muted-light); }
-        .roast-badge {
-            display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 999px;
-            margin-top: 2px; font-weight: 600;
-        }
-        .roast-light { background: rgba(250, 204, 21, 0.15); color: #facc15; }
-        .roast-medium { background: rgba(251, 146, 60, 0.15); color: #fb923c; }
-        .roast-dark { background: rgba(120, 53, 15, 0.35); color: #d97706; }
         .clicks-ref-wrap { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 2px; }
         .clicks-ref { font-size: 11px; color: var(--muted-light); font-weight: 500; }
 
@@ -265,8 +267,9 @@
             bottom: 22px;
             left: 50%;
             transform: translateX(-50%);
-            background: #1c140d;
-            color: #e8dfd3;
+            background: var(--card);
+            color: var(--text);
+            border: 1px solid var(--border);
             padding: 8px 10px;
             border-radius: 8px;
             font-size: 11px;
@@ -340,21 +343,21 @@
         }
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%; height: 4px; cursor: pointer;
-            background: #4b5563; border-radius: 2px;
+            background: var(--track); border-radius: 2px;
         }
         input[type=range]::-moz-range-thumb {
             height: 20px; width: 20px; border: none; border-radius: 50%;
             background: #ffffff; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
-        input[type=range]::-moz-range-track { width: 100%; height: 4px; background: #4b5563; border-radius: 2px; }
+        input[type=range]::-moz-range-track { width: 100%; height: 4px; background: var(--track); border-radius: 2px; }
         input[type=range]::-moz-range-progress { height: 4px; border-radius: 2px; }
 
         #balance-slider::-webkit-slider-thumb { background: var(--red); }
-        #balance-slider::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--red) var(--value, 50%), #4b5563 var(--value, 50%)); }
+        #balance-slider::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--red) var(--value, 50%), var(--track) var(--value, 50%)); }
         #balance-slider::-moz-range-progress { background: var(--red); }
 
         #strength-slider::-webkit-slider-thumb { background: var(--stone-light); }
-        #strength-slider::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--stone-light) var(--value, 66%), #4b5563 var(--value, 66%)); }
+        #strength-slider::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--stone-light) var(--value, 66%), var(--track) var(--value, 66%)); }
         #strength-slider::-moz-range-progress { background: var(--stone-light); }
 
         input:focus-visible, select:focus-visible, button:focus-visible {
@@ -436,6 +439,18 @@
             background: var(--field) !important; color: var(--text) !important; box-shadow: none !important;
         }
 
+        .import-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 100;
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        .import-dialog { max-width: 380px; margin: 0; width: 100%; }
+        .import-dialog h2 { margin-bottom: 10px; }
+        #import-recipe-desc {
+            font-size: 14px; color: var(--muted-light); margin-bottom: 20px; line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+        .import-dialog .builder-actions button { margin-bottom: 0; }
+
         #steps { display: flex; flex-direction: column; gap: 12px; }
         .step {
             display: flex; align-items: flex-start; background: var(--field); padding: 12px;
@@ -497,6 +512,7 @@
             </select>
 
             <p id="recipe-note"></p>
+            <p id="recipe-ref-dose"></p>
 
             <div class="info-box">
                 <div class="info-col">
@@ -524,11 +540,14 @@
                 </div>
             </div>
 
-            <label for="ratio-input" class="field-label-inline">Proporção (água : café)</label>
+            <div class="ratio-label-row">
+                <label for="ratio-input" class="field-label-inline">Proporção (água : café)</label>
+                <button type="button" id="ratio-official-btn" class="ratio-official hidden" onclick="restoreOfficialRatio()"></button>
+            </div>
             <div class="stepper" style="margin-bottom:16px;">
-                <button type="button" aria-label="Diminuir proporção em 1" onclick="adjustRatio(-1)">−</button>
-                <input type="number" id="ratio-input" min="5" max="25" step="1" inputmode="numeric" value="17" oninput="update('ratio')">
-                <button type="button" aria-label="Aumentar proporção em 1" onclick="adjustRatio(1)">+</button>
+                <button type="button" aria-label="Diminuir proporção em 0,5" onclick="adjustRatio(-0.5)">−</button>
+                <input type="number" id="ratio-input" min="5" max="25" step="0.1" inputmode="decimal" value="16.7" oninput="onRatioInput()" onchange="onRatioCommit()">
+                <button type="button" aria-label="Aumentar proporção em 0,5" onclick="adjustRatio(0.5)">+</button>
             </div>
 
             <div class="field-grid">
@@ -743,19 +762,28 @@
         </div>
     </div>
 
-    <div id="import-overlay" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;">
-        <div class="card" style="max-width:380px;margin:0;width:100%;">
-            <h2 style="margin-bottom:10px;">⭐ Importar receita?</h2>
-            <p id="import-recipe-desc" style="font-size:14px;color:var(--muted-light);margin-bottom:20px;line-height:1.5;"></p>
+    <div id="import-overlay" class="import-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="import-title">
+        <div class="card import-dialog">
+            <h2 id="import-title">⭐ Importar receita?</h2>
+            <p id="import-recipe-desc"></p>
             <div class="builder-actions">
-                <button type="button" class="btn-primary btn-secondary" style="margin-bottom:0;" onclick="dismissImport()">Ignorar</button>
-                <button type="button" class="btn-primary" style="margin-bottom:0;" onclick="confirmImport()">Importar</button>
+                <button type="button" class="btn-primary btn-secondary" onclick="dismissImport()">Ignorar</button>
+                <button type="button" class="btn-primary" id="import-confirm-btn" onclick="confirmImport()">Importar</button>
             </div>
         </div>
     </div>
 
     <script>
-        const grindLadder = ['Fina', 'Média-Fina', 'Média', 'Média-Grossa', 'Grossa'];
+        // Nomes de receita e descrições de passo podem vir de um link compartilhado, ou
+        // seja, são texto controlado por terceiros. Sempre escapar antes de montar HTML.
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
         // Faixa de cliques (referência Timemore C2) por nível de moagem — usada para
         // derivar automaticamente o nome da moagem a partir do número de cliques.
@@ -775,18 +803,35 @@
             return 18;
         }
 
-        function getDefaultTemp(recipe, roast) {
-            if (recipe.tempByRoast) {
-                const m = recipe.tempByRoast[roast].match(/\d+/);
-                return m ? parseInt(m[0]) : 92;
+        // Temperatura como dado estruturado, não como string de exibição. Antes, uma
+        // receita que especificava "90°C - 95°C" tinha o número extraído por regex e o
+        // app ficava sempre com o limite inferior, escondendo a faixa do autor.
+        // Retorna { value, label, adjusted }:
+        //   value    — número que alimenta o campo
+        //   label    — o que a receita de fato especifica (pode ser faixa)
+        //   adjusted — true quando o valor é ajuste do app por torra, não número do autor
+        function getRecipeTemp(recipe, roast) {
+            const spec = recipe.tempByRoast && recipe.tempByRoast[roast];
+            if (spec !== undefined) {
+                if (Array.isArray(spec)) return { value: spec[0], label: `${spec[0]}–${spec[1]}°C`, adjusted: false };
+                return { value: spec, label: `${spec}°C`, adjusted: false };
             }
             if (recipe.tempBase !== undefined) {
-                const base = recipe.tempBase;
-                if (roast === 'light') return Math.min(99, base + 3);
-                if (roast === 'dark') return Math.max(78, base - 5);
-                return base;
+                if (roast === 'light') {
+                    const v = Math.min(99, recipe.tempBase + 3);
+                    return { value: v, label: `${v}°C`, adjusted: true };
+                }
+                if (roast === 'dark') {
+                    const v = Math.max(78, recipe.tempBase - 5);
+                    return { value: v, label: `${v}°C`, adjusted: true };
+                }
+                return { value: recipe.tempBase, label: `${recipe.tempBase}°C`, adjusted: false };
             }
-            return 92;
+            return { value: 92, label: '92°C', adjusted: true };
+        }
+
+        function getDefaultTemp(recipe, roast) {
+            return getRecipeTemp(recipe, roast).value;
         }
 
         function getActiveClicks(recipe, roast) {
@@ -802,7 +847,7 @@
         function adjustClicks(amount) {
             const input = document.getElementById('clicks-input');
             const current = parseInt(input.value);
-            input.value = Math.max(5, (isNaN(current) ? 18 : current) + amount);
+            input.value = clampToInput(input, (isNaN(current) ? 18 : current) + amount);
             onClicksInput();
             saveSettings();
         }
@@ -810,7 +855,7 @@
         function adjustTemp(amount) {
             const input = document.getElementById('temp-input');
             const current = parseInt(input.value);
-            input.value = Math.max(60, (isNaN(current) ? 92 : current) + amount);
+            input.value = clampToInput(input, (isNaN(current) ? 92 : current) + amount);
             saveSettings();
         }
 
@@ -1223,18 +1268,50 @@
                 rw: data.refWater,
                 ck: data.clicksDefault,
                 tc: data.tempC,
-                st: data.steps.map(s => [parseTimeToSeconds(s.time), Math.round(s.pct * 1000) / 1000, s.desc])
+                // Gramas absolutos, não percentual: arredondar o percentual para 3 casas
+                // fazia 50g em 320ml virar 62,4g (e não 62,5g) ao reescalar para 400ml
+                st: data.steps.map(s => [parseTimeToSeconds(s.time), s.amount, s.desc])
             };
             const param = toBase64Url(JSON.stringify(compact));
             const base = location.href.split('#')[0];
             return { url: `${base}#r=${param}`, param };
         }
 
+        // Limites de sanidade para dados que chegam de um link — o conteúdo é controlado
+        // por quem gerou o QR, então nada aqui pode ser assumido como confiável
+        const LIMITES_IMPORT = { nome: 60, passos: 20, desc: 60 };
+
+        function numeroValido(v, min, max) {
+            return typeof v === 'number' && isFinite(v) && v >= min && v <= max;
+        }
+
+        function textoValido(v, maxLen) {
+            return typeof v === 'string' && v.trim().length > 0 && v.length <= maxLen;
+        }
+
         function decodeRecipeFromParam(param) {
             const compact = JSON.parse(fromBase64Url(param));
-            if (!compact.n || !compact.dv || !Array.isArray(compact.st) || compact.st.length === 0) {
-                throw new Error('dados de receita inválidos');
+            const invalido = msg => { throw new Error(msg); };
+
+            if (!textoValido(compact.n, LIMITES_IMPORT.nome)) invalido('nome de receita inválido');
+            if (typeof compact.dv !== 'string') invalido('aparelho inválido');
+            if (!Array.isArray(compact.st) || compact.st.length === 0 || compact.st.length > LIMITES_IMPORT.passos) {
+                invalido('lista de passos inválida');
             }
+            if (!numeroValido(compact.rc, 0.1, 1000)) invalido('café de referência inválido');
+            if (!numeroValido(compact.rw, 1, 10000)) invalido('água de referência inválida');
+            if (!numeroValido(compact.ck, 1, 100)) invalido('cliques inválidos');
+            if (!numeroValido(compact.tc, 1, 100)) invalido('temperatura inválida');
+
+            const steps = compact.st.map(passo => {
+                if (!Array.isArray(passo) || passo.length !== 3) invalido('passo malformado');
+                const [sec, amount, desc] = passo;
+                if (!numeroValido(sec, 0, 3600)) invalido('tempo de passo inválido');
+                if (!numeroValido(amount, 0, 10000)) invalido('quantidade de passo inválida');
+                if (!textoValido(desc, LIMITES_IMPORT.desc)) invalido('descrição de passo inválida');
+                return { time: formatTime(Math.round(sec)), amount, desc };
+            });
+
             return {
                 id: `custom-${simpleHash(param)}`,
                 device: compact.dv,
@@ -1243,7 +1320,7 @@
                 refWater: compact.rw,
                 clicksDefault: compact.ck,
                 tempC: compact.tc,
-                steps: compact.st.map(([sec, pct, desc]) => ({ time: formatTime(sec), pct, desc }))
+                steps
             };
         }
 
@@ -1300,79 +1377,101 @@
         function adjustReviewClicks(amount) {
             const input = document.getElementById('review-clicks');
             const current = parseInt(input.value);
-            input.value = Math.max(5, (isNaN(current) ? 18 : current) + amount);
+            input.value = clampToInput(input, (isNaN(current) ? 18 : current) + amount);
             onReviewClicksInput();
         }
 
-        // Todas as receitas abaixo foram conferidas contra fontes primárias
-        // (timer.coffee, guias oficiais dos métodos) em jul/2026.
+        // ---------- Motor de receitas ----------
+        // Cada passo é declarado como DADO, não como texto pronto:
+        //   { time, label, to, hint }  -> despejo, onde `to(coffee, water)` é o ALVO ACUMULADO em gramas
+        //   { time, desc }             -> instrução sem despejo (mexer, aguardar, prensar)
+        //
+        // O arredondamento acontece num lugar só (renderRecipeSteps): os alvos acumulados
+        // são arredondados e cada despejo é a DIFERENÇA entre alvos consecutivos já
+        // arredondados. Assim a soma dos despejos fecha exatamente no alvo final, por
+        // construção — antes, arredondar cada despejo e cada alvo em separado fazia com
+        // que 250ml em 4 despejos mandasse despejar 252g.
+        const alvo = fn => (typeof fn === 'function' ? fn : () => fn);
+        const fracaoDaAgua = f => (c, w) => w * f;
+
+        function renderRecipeSteps(descriptors, coffee, water) {
+            let anterior = 0;
+            return descriptors.map(d => {
+                if (d.to === undefined) return { time: d.time, desc: d.desc };
+                const target = Math.round(alvo(d.to)(coffee, water));
+                const pour = Math.max(0, target - anterior);
+                anterior = target;
+                const hint = d.hint ? ` ${d.hint}` : '';
+                return {
+                    time: d.time,
+                    desc: `<b>${d.label}:</b> despeje <b>${pour}g</b> — alvo <b>${target}g</b> na balança.${hint}`,
+                    pour, target
+                };
+            });
+        }
+
+        // Percentuais dos dois primeiros despejos do 4:6 por posição do controle de balanço
+        const KASUYA_BALANCE = {
+            1: [0.12, 0.28], 2: [0.16, 0.24], 3: [0.20, 0.20], 4: [0.24, 0.16], 5: [0.28, 0.12]
+        };
+
+        // As proporções (`ratio`) são sempre a razão exata água:café da dose de referência
+        // do autor — nunca um valor arredondado. `refDose` guarda essa dose original para
+        // exibição, e `source` aponta a publicação que sustenta cada receita.
         const deviceData = {
             v60: {
                 label: 'V60',
                 recipes: {
                     hoffmann: {
-                        label: 'James Hoffmann (1:16.6)',
+                        label: 'James Hoffmann',
                         ratio: 500 / 30,
-                        ratioLabel: '1:16.6',
-                        grindBase: 'Média-Fina',
+                        refDose: { coffee: 30, water: 500 },
                         tempBase: 95,
                         clicksByRoast: { light: 17, medium: 18, dark: 19 },
+                        clicksEstimated: true,
+                        source: 'https://www.youtube.com/watch?v=AI4ynXzkSQo',
                         note: 'Receita "Ultimate V60" de James Hoffmann, Campeão Mundial de Barista 2007. Bloom de 2x o peso do café, depois dois despejos até 60% e 100% da água.',
                         hasKasuyaControls: false,
-                        buildSteps(coffee, water) {
-                            const bloom = coffee * 2;
-                            const p60 = water * 0.6;
-                            return [
-                                { time: '0:00', desc: `<b>Bloom:</b> Despeje <b>${bloom.toFixed(0)}g</b>. Balance o V60 suavemente para molhar todo o pó.` },
-                                { time: '0:45', desc: `<b>1º Despejo:</b> Despeje em círculos até atingir <b>${p60.toFixed(0)}g</b> na balança.` },
-                                { time: '1:15', desc: `<b>2º Despejo:</b> Continue despejando lentamente até atingir <b>${water.toFixed(0)}g</b>.` },
-                                { time: '1:45', desc: `Dê uma leve mexida com uma colher (1x cada lado) e balance o V60 para planificar a cama de café.` },
-                                { time: '3:30', desc: `Tempo estimado para drenagem total.` }
-                            ];
-                        }
+                        buildSteps: () => [
+                            { time: '0:00', label: 'Bloom', to: c => c * 2, hint: 'Balance o V60 suavemente para molhar todo o pó.' },
+                            { time: '0:45', label: '1º Despejo', to: (c, w) => w * 0.6, hint: 'Despeje em círculos.' },
+                            { time: '1:15', label: '2º Despejo', to: (c, w) => w, hint: 'Despeje lentamente.' },
+                            { time: '1:45', desc: 'Dê uma leve mexida com uma colher (1x cada lado) e balance o V60 para planificar a cama de café.' },
+                            { time: '3:30', desc: 'Tempo estimado para drenagem total.' }
+                        ]
                     },
                     kasuya: {
-                        label: 'Tetsu Kasuya 4:6 — Campeão Mundial 2016 (1:15)',
+                        label: 'Tetsu Kasuya 4:6 — Campeão Mundial 2016',
                         ratio: 15,
-                        ratioLabel: '1:15.0',
-                        grindBase: 'Média-Grossa',
-                        tempByRoast: { light: '93°C', medium: '88°C', dark: '83°C' },
+                        refDose: { coffee: 20, water: 300 },
+                        tempByRoast: { light: 93, medium: 88, dark: 83 },
                         clicksByRoast: { light: 20, medium: 21, dark: 22 },
                         clicksEstimated: true,
+                        source: 'https://www.timer.coffee/recipes/v60/tetsu-kasuya-4-6-method/',
                         note: 'Método 4:6 de Tetsu Kasuya, Campeão Mundial de Brewers Cup 2016. Os dois primeiros despejos (40% da água) ajustam doçura/acidez; o restante (60%) ajusta a força.',
                         hasKasuyaControls: true,
                         buildSteps(coffee, water, balVal, strVal) {
-                            let pour1_pct, pour2_pct;
-                            if (balVal === 1) { pour1_pct = 0.12; pour2_pct = 0.28; }
-                            else if (balVal === 2) { pour1_pct = 0.16; pour2_pct = 0.24; }
-                            else if (balVal === 3) { pour1_pct = 0.20; pour2_pct = 0.20; }
-                            else if (balVal === 4) { pour1_pct = 0.24; pour2_pct = 0.16; }
-                            else if (balVal === 5) { pour1_pct = 0.28; pour2_pct = 0.12; }
-
-                            const p1 = water * pour1_pct;
-                            const p2 = water * pour2_pct;
-                            const numStrengthPours = strVal;
-                            const strengthPourAmt = (water * 0.60) / numStrengthPours;
-
-                            let currentWeight = 0;
-                            let currentTime = 0;
+                            const [f1, f2] = KASUYA_BALANCE[balVal] || KASUYA_BALANCE[3];
+                            const n = strVal;
                             const steps = [];
+                            let frac = 0;
+                            let t = 0;
 
-                            currentWeight += p1;
-                            steps.push({ time: formatTime(currentTime), desc: `<b>Bloom:</b> Despeje <b>${p1.toFixed(0)}g</b>. (Alvo: ${currentWeight.toFixed(0)}g)` });
-                            currentTime += 45;
+                            frac += f1;
+                            steps.push({ time: formatTime(t), label: 'Bloom', to: fracaoDaAgua(frac) });
+                            t += 45;
 
-                            currentWeight += p2;
-                            steps.push({ time: formatTime(currentTime), desc: `<b>2º Despejo:</b> Despeje <b>${p2.toFixed(0)}g</b>. (Alvo: ${currentWeight.toFixed(0)}g)` });
-                            currentTime += 45;
+                            frac += f2;
+                            steps.push({ time: formatTime(t), label: '2º Despejo', to: fracaoDaAgua(frac) });
+                            t += 45;
 
-                            for (let i = 0; i < numStrengthPours; i++) {
-                                currentWeight += strengthPourAmt;
-                                steps.push({ time: formatTime(currentTime), desc: `<b>Despejo ${i + 3}:</b> Despeje <b>${strengthPourAmt.toFixed(0)}g</b>. (Alvo: ${Math.round(currentWeight)}g)` });
-                                currentTime += 45;
+                            for (let i = 0; i < n; i++) {
+                                frac += 0.60 / n;
+                                steps.push({ time: formatTime(t), label: `Despejo ${i + 3}`, to: fracaoDaAgua(frac) });
+                                t += 45;
                             }
 
-                            steps.push({ time: formatTime(currentTime), desc: `Fim da extração. Remova o filtro.` });
+                            steps.push({ time: formatTime(t), desc: 'Fim da extração. Remova o filtro.' });
                             return steps;
                         }
                     }
@@ -1382,27 +1481,24 @@
                 label: 'Chemex',
                 recipes: {
                     hoffmann: {
-                        label: 'James Hoffmann (1:16.6)',
+                        label: 'James Hoffmann',
                         ratio: 500 / 30,
-                        ratioLabel: '1:16.6',
-                        grindBase: 'Média-Grossa',
+                        refDose: { coffee: 30, water: 500 },
                         tempBase: 95,
                         clicksByRoast: { light: 20, medium: 21, dark: 22 },
+                        clicksEstimated: true,
+                        source: 'https://www.timer.coffee/recipes/chemex/james-hoffmann-chemex-recipe/',
                         note: 'Adaptação de James Hoffmann do método V60 para o Chemex — bloom de 2x o café, despejos até 60% e 100%, com uma sacudida extra ao final.',
                         hasKasuyaControls: false,
-                        buildSteps(coffee, water) {
-                            const bloom = coffee * 2;
-                            const p60 = water * 0.6;
-                            return [
-                                { time: '0:00', desc: `<b>Bloom:</b> Despeje <b>${bloom.toFixed(0)}g</b>, saturando todo o pó.` },
-                                { time: '0:10', desc: `Mexa gentilmente e deixe florescer.` },
-                                { time: '0:45', desc: `<b>1º Despejo:</b> Em círculos, quebrando grumos, até <b>${p60.toFixed(0)}g</b>.` },
-                                { time: '1:15', desc: `<b>2º Despejo:</b> Continue até <b>${water.toFixed(0)}g</b>.` },
-                                { time: '1:45', desc: `Mexa 1x no sentido horário e 1x no anti-horário com uma colher.` },
-                                { time: '2:00', desc: `Dê uma leve sacudida no Chemex para nivelar a cama de café.` },
-                                { time: '2:10', desc: `Aguarde o gotejamento total (tempo estimado: ~4:10).` }
-                            ];
-                        }
+                        buildSteps: () => [
+                            { time: '0:00', label: 'Bloom', to: c => c * 2, hint: 'Sature todo o pó.' },
+                            { time: '0:10', desc: 'Mexa gentilmente e deixe florescer.' },
+                            { time: '0:45', label: '1º Despejo', to: (c, w) => w * 0.6, hint: 'Em círculos, quebrando grumos.' },
+                            { time: '1:15', label: '2º Despejo', to: (c, w) => w },
+                            { time: '1:45', desc: 'Mexa 1x no sentido horário e 1x no anti-horário com uma colher.' },
+                            { time: '2:00', desc: 'Dê uma leve sacudida no Chemex para nivelar a cama de café.' },
+                            { time: '2:10', desc: 'Aguarde o gotejamento total (tempo estimado: ~4:10).' }
+                        ]
                     }
                 }
             },
@@ -1410,26 +1506,22 @@
                 label: 'Kalita Wave',
                 recipes: {
                     mccarthy: {
-                        label: 'James McCarthy — Campeão Mundial 2013 (1:15.8)',
+                        label: 'Erin McCarthy — Campeonato Mundial 2013',
                         ratio: 380 / 24,
-                        ratioLabel: '1:15.8',
-                        grindBase: 'Média',
+                        refDose: { coffee: 24, water: 380 },
                         tempBase: 96,
                         clicksByRoast: { light: 18, medium: 19, dark: 20 },
                         clicksEstimated: true,
-                        note: 'Receita de James McCarthy, Campeão Mundial de Brewers Cup 2013 com o Kalita Wave. Despejos pulsados em duas etapas após o bloom.',
+                        source: 'https://sprudge.com/erin-mccarthy-brewers-cup-cham-36235.html',
+                        note: 'Receita de Erin McCarthy (Counter Culture), vencedora do Campeonato Mundial de Brewers Cup 2013 com o Kalita Wave. 24g para 380ml, moagem média-grossa com os finos peneirados, bloom de 45s e despejos pulsados mantendo uma coluna de água constante. O filtro Wave não é enxaguado.',
                         hasKasuyaControls: false,
-                        buildSteps(coffee, water) {
-                            const bloom = coffee * 2;
-                            const p50 = water * 0.5;
-                            return [
-                                { time: '0:00', desc: `<b>Pré-molha:</b> Despeje <b>${bloom.toFixed(0)}g</b>.` },
-                                { time: '0:15', desc: `Deixe florescer.` },
-                                { time: '0:45', desc: `<b>Despejo pulsado:</b> até <b>${p50.toFixed(0)}g</b>, mantendo uma coluna de água constante sobre o pó.` },
-                                { time: '1:15', desc: `<b>Despejo pulsado:</b> até <b>${water.toFixed(0)}g</b>. Use um bico de fluxo controlado se tiver.` },
-                                { time: '1:45', desc: `Aguarde o gotejamento completo (tempo estimado: ~3:30).` }
-                            ];
-                        }
+                        buildSteps: () => [
+                            { time: '0:00', label: 'Pré-molha', to: c => c * 2 },
+                            { time: '0:15', desc: 'Deixe florescer.' },
+                            { time: '0:45', label: 'Despejo pulsado', to: (c, w) => w * 0.5, hint: 'Mantenha uma coluna de água constante sobre o pó.' },
+                            { time: '1:15', label: 'Despejo pulsado', to: (c, w) => w, hint: 'Use um bico de fluxo controlado se tiver.' },
+                            { time: '1:45', desc: 'Aguarde o gotejamento completo (tempo estimado: ~3:30).' }
+                        ]
                     }
                 }
             },
@@ -1437,27 +1529,23 @@
                 label: 'Origami',
                 recipes: {
                     jianingdu: {
-                        label: 'Jia Ning Du — Campeã Mundial 2019 (1:15.0)',
+                        label: 'Du Jianing — Campeã Mundial 2019',
                         ratio: 240 / 16,
-                        ratioLabel: '1:15.0',
-                        grindBase: 'Média',
+                        refDose: { coffee: 16, water: 240 },
                         tempBase: 94,
                         clicksByRoast: { light: 18, medium: 19, dark: 20 },
                         clicksEstimated: true,
-                        note: 'Receita vencedora de Jia Ning Du, Campeã Mundial de Brewers Cup 2019 — primeira barista chinesa a vencer o título. Extração rápida em três despejos.',
+                        source: 'https://sprudge.com/du-jianing-of-china-is-the-2019-world-brewers-cup-champion-142739.html',
+                        note: 'Receita vencedora de Du Jianing, Campeã Mundial de Brewers Cup 2019 — primeira competidora da China a vencer um Campeonato Mundial de Café. 16g para 240ml a 94°C no Origami, extração de ~1:40. Na competição ela moía o café duas vezes, peneirando a casca entre as moagens.',
                         hasKasuyaControls: false,
-                        buildSteps(coffee, water) {
-                            const p1 = water * 0.25;
-                            const p2cum = water * 0.5833;
-                            return [
-                                { time: '0:00', desc: `<b>1º Despejo:</b> Despeje <b>${p1.toFixed(0)}g</b>.` },
-                                { time: '0:10', desc: `Aguarde.` },
-                                { time: '0:18', desc: `<b>2º Despejo:</b> Continue até <b>${p2cum.toFixed(0)}g</b>.` },
-                                { time: '0:38', desc: `Aguarde.` },
-                                { time: '0:56', desc: `<b>3º Despejo:</b> Complete até <b>${water.toFixed(0)}g</b>.` },
-                                { time: '1:16', desc: `Aguarde o gotejamento total (tempo estimado: ~1:46).` }
-                            ];
-                        }
+                        buildSteps: () => [
+                            { time: '0:00', label: '1º Despejo', to: (c, w) => w * 0.25 },
+                            { time: '0:10', desc: 'Aguarde.' },
+                            { time: '0:18', label: '2º Despejo', to: (c, w) => w * 0.5833 },
+                            { time: '0:38', desc: 'Aguarde.' },
+                            { time: '0:56', label: '3º Despejo', to: (c, w) => w },
+                            { time: '1:16', desc: 'Aguarde o gotejamento total (tempo estimado: ~1:46).' }
+                        ]
                     }
                 }
             },
@@ -1465,23 +1553,22 @@
                 label: 'Prensa Francesa',
                 recipes: {
                     hoffmann: {
-                        label: 'James Hoffmann (1:16.7)',
+                        label: 'James Hoffmann',
                         ratio: 500 / 30,
-                        ratioLabel: '1:16.7',
-                        grindBase: 'Grossa',
+                        refDose: { coffee: 30, water: 500 },
                         tempBase: 95,
                         clicksByRoast: { light: 27, medium: 28, dark: 29 },
+                        clicksEstimated: true,
+                        source: 'https://www.youtube.com/watch?v=st571DYYTR8',
                         note: 'Técnica "Ultimate French Press" de James Hoffmann: um longo descanso antes de prensar reduz sedimentos e deixa a xícara mais limpa.',
                         hasKasuyaControls: false,
-                        buildSteps(coffee, water) {
-                            return [
-                                { time: '0:00', desc: `Despeje toda a água (<b>${water.toFixed(0)}g</b>) de uma vez, cobrindo todo o pó.` },
-                                { time: '0:15', desc: `Deixe descansar sem mexer.` },
-                                { time: '4:15', desc: `Mexa a crosta que se formou no topo e remova a espuma/partículas flutuantes com uma colher.` },
-                                { time: '4:45', desc: `Deixe descansar por mais 5 minutos, sem mexer, para as partículas assentarem.` },
-                                { time: '9:45', desc: `Encaixe o êmbolo só até a superfície do líquido, sem pressionar, e sirva devagar.` }
-                            ];
-                        }
+                        buildSteps: () => [
+                            { time: '0:00', label: 'Despejo único', to: (c, w) => w, hint: 'De uma vez, cobrindo todo o pó.' },
+                            { time: '0:15', desc: 'Deixe descansar sem mexer.' },
+                            { time: '4:15', desc: 'Mexa a crosta que se formou no topo e remova a espuma/partículas flutuantes com uma colher.' },
+                            { time: '4:45', desc: 'Deixe descansar por mais 5 minutos, sem mexer, para as partículas assentarem.' },
+                            { time: '9:45', desc: 'Encaixe o êmbolo só até a superfície do líquido, sem pressionar, e sirva devagar.' }
+                        ]
                     }
                 }
             },
@@ -1489,48 +1576,44 @@
                 label: 'AeroPress',
                 recipes: {
                     hoffmann: {
-                        label: 'James Hoffmann (1:18.2)',
+                        label: 'James Hoffmann',
                         ratio: 200 / 11,
-                        ratioLabel: '1:18.2',
-                        grindBase: 'Média-Fina',
-                        tempByRoast: { light: '95°C', medium: '90°C - 95°C', dark: '85°C - 90°C' },
+                        refDose: { coffee: 11, water: 200 },
+                        tempByRoast: { light: 95, medium: [90, 95], dark: [85, 90] },
                         clicksByRoast: { light: 14, medium: 15, dark: 16 },
+                        clicksEstimated: true,
+                        source: 'https://aeroprecipe.com/recipes/james-hoffmann-aeropress-recipe',
                         note: 'Receita padrão de James Hoffmann para AeroPress na posição tradicional (não invertida).',
                         hasKasuyaControls: false,
-                        buildSteps(coffee, water) {
-                            return [
-                                { time: '0:00', desc: `Despeje toda a água (<b>${water.toFixed(0)}g</b>), molhando todo o café.` },
-                                { time: '0:10', desc: `Encaixe o êmbolo cerca de 1cm no topo do bocal.` },
-                                { time: '0:15', desc: `Aguarde 2 minutos.` },
-                                { time: '2:15', desc: `Segurando o corpo e o êmbolo, gire suavemente o AeroPress.` },
-                                { time: '2:25', desc: `Aguarde 30 segundos.` },
-                                { time: '2:55', desc: `Pressione suavemente até o final (tempo estimado: ~3:25).` }
-                            ];
-                        }
+                        buildSteps: () => [
+                            { time: '0:00', label: 'Despejo único', to: (c, w) => w, hint: 'Molhe todo o café.' },
+                            { time: '0:10', desc: 'Encaixe o êmbolo cerca de 1cm no topo do bocal.' },
+                            { time: '0:15', desc: 'Aguarde 2 minutos.' },
+                            { time: '2:15', desc: 'Segurando o corpo e o êmbolo, gire suavemente o AeroPress.' },
+                            { time: '2:25', desc: 'Aguarde 30 segundos.' },
+                            { time: '2:55', desc: 'Pressione suavemente até o final (tempo estimado: ~3:25).' }
+                        ]
                     },
                     merikanto: {
-                        label: 'Tuomas Merikanto — Campeão Mundial 2021 (1:11.1)',
+                        label: 'Tuomas Merikanto — Campeão Mundial 2021',
                         ratio: 200 / 18,
-                        ratioLabel: '1:11.1',
-                        grindBase: 'Fina',
+                        refDose: { coffee: 18, water: 200 },
                         tempBase: 80,
                         clicksByRoast: { light: 12, medium: 13, dark: 14 },
                         clicksEstimated: true,
-                        note: 'Receita vencedora do Campeonato Mundial de AeroPress 2021, de Tuomas Merikanto (Finlândia). Método invertido, com bloom curto e temperatura mais baixa.',
+                        source: 'https://aeroprecipe.com/recipes/2021-world-aeropress-champion',
+                        note: 'Receita vencedora do Campeonato Mundial de AeroPress 2021, de Tuomas Merikanto (Finlândia). AeroPress invertido com dois filtros de papel, 18g para 200ml a 80°C.',
                         hasKasuyaControls: false,
-                        buildSteps(coffee, water) {
-                            const p1 = water * 0.25;
-                            return [
-                                { time: '0:00', desc: `<b>AeroPress invertido:</b> despeje <b>${p1.toFixed(0)}g</b> para o bloom.` },
-                                { time: '0:10', desc: `Mexa bem suavemente, 3 vezes.` },
-                                { time: '0:15', desc: `Complete até <b>${water.toFixed(0)}g</b>.` },
-                                { time: '0:30', desc: `Deixe extrair sem mexer.` },
-                                { time: '0:50', desc: `Mexa bem suavemente mais 3 vezes.` },
-                                { time: '1:00', desc: `Retire o excesso de ar e encaixe a tampa com o filtro.` },
-                                { time: '1:40', desc: `Vire o AeroPress para a posição normal e comece a pressionar.` },
-                                { time: '2:00', desc: `Gire suavemente para resfriar antes de servir.` }
-                            ];
-                        }
+                        buildSteps: () => [
+                            { time: '0:00', label: 'Bloom', to: (c, w) => w * 0.25, hint: 'AeroPress invertido, com dois filtros de papel na tampa.' },
+                            { time: '0:10', desc: 'Mexa bem suavemente, 3 vezes (ida e volta).' },
+                            { time: '0:15', label: 'Despejo final', to: (c, w) => w },
+                            { time: '0:30', desc: 'Deixe extrair sem mexer.' },
+                            { time: '0:50', desc: 'Mexa bem suavemente mais 3 vezes.' },
+                            { time: '1:00', desc: 'Retire o excesso de ar e encaixe a tampa com os filtros.' },
+                            { time: '1:35', desc: 'Encaixe o recipiente sobre o AeroPress.' },
+                            { time: '1:40', desc: 'Vire para a posição normal e pressione imediatamente, até 2:00.' }
+                        ]
                     }
                 }
             }
@@ -1553,7 +1636,8 @@
 
         function loadCustomRecipes() {
             try {
-                customRecipes = JSON.parse(localStorage.getItem('brewcalc-custom-recipes')) || [];
+                const salvas = JSON.parse(localStorage.getItem('brewcalc-custom-recipes')) || [];
+                customRecipes = salvas.map(normalizeCustomRecipe);
             } catch (e) {
                 customRecipes = [];
             }
@@ -1570,37 +1654,68 @@
             return {
                 label: data.name,
                 ratio: ratio,
-                ratioLabel: `1:${Math.round(ratio)}`,
+                refDose: { coffee: data.refCoffee, water: data.refWater },
                 clicksDefault: data.clicksDefault,
                 tempBase: data.tempC,
                 note: 'Receita criada por você.',
                 hasKasuyaControls: false,
                 isCustom: true,
                 customId: data.id,
-                buildSteps(coffee, water) {
-                    return data.steps.map(s => ({
-                        time: s.time,
-                        desc: `<b>${s.desc}:</b> despeje até <b>${Math.round(water * s.pct)}g</b>.`
-                    }));
-                }
+                // O texto do passo vem do usuário (ou de um link importado), então é
+                // escapado antes de entrar no HTML montado por renderRecipeSteps
+                buildSteps: () => data.steps.map(s => ({
+                    time: s.time,
+                    label: escapeHtml(s.desc),
+                    to: fracaoDaAgua(s.amount / data.refWater)
+                }))
             };
+        }
+
+        // Passos passaram a guardar a quantidade absoluta em gramas (exata) em vez de um
+        // percentual arredondado. Converte o formato antigo já salvo no localStorage.
+        function normalizeCustomRecipe(data) {
+            if (!data || !Array.isArray(data.steps)) return data;
+            data.steps = data.steps.map(s => (
+                s.amount === undefined && s.pct !== undefined
+                    ? { time: s.time, amount: s.pct * data.refWater, desc: s.desc }
+                    : s
+            ));
+            return data;
         }
 
         function addCustomStepRow(time, amount, desc) {
             const list = document.getElementById('custom-steps-list');
             const row = document.createElement('div');
             row.className = 'custom-step-row';
+            // Cabeçalho é estático, pode ser innerHTML
             row.innerHTML = `
                 <div class="custom-step-header">
                     <span>Passo</span>
                     <button type="button" onclick="this.closest('.custom-step-row').remove()" aria-label="Remover passo">Remover</button>
                 </div>
-                <div class="field-grid" style="gap:8px; margin-bottom:8px;">
-                    <input type="text" class="text-input step-time-input" placeholder="Tempo (0:45)" value="${time || ''}" style="margin-bottom:0;">
-                    <input type="number" class="text-input step-amount-input" placeholder="Meta (g)" value="${amount || ''}" style="margin-bottom:0;">
-                </div>
-                <input type="text" class="text-input step-desc-input" placeholder="Descrição (ex: Bloom, despejo circular)" value="${desc || ''}" style="margin-bottom:0;">
             `;
+
+            // Já os valores vêm do usuário ou de um link importado: criados via DOM com
+            // .value, nunca interpolados em atributo (uma aspa dupla escapava do value=)
+            const criarCampo = (classe, tipo, placeholder, valor) => {
+                const input = document.createElement('input');
+                input.type = tipo;
+                input.className = `text-input ${classe}`;
+                input.placeholder = placeholder;
+                input.style.marginBottom = '0';
+                input.value = valor === undefined || valor === null ? '' : valor;
+                return input;
+            };
+
+            const grid = document.createElement('div');
+            grid.className = 'field-grid';
+            grid.style.gap = '8px';
+            grid.style.marginBottom = '8px';
+            grid.appendChild(criarCampo('step-time-input', 'text', 'Tempo (0:45)', time));
+            grid.appendChild(criarCampo('step-amount-input', 'number', 'Meta (g)', amount));
+            row.appendChild(grid);
+
+            row.appendChild(criarCampo('step-desc-input', 'text', 'Descrição (ex: Bloom, despejo circular)', desc));
             list.appendChild(row);
         }
 
@@ -1622,7 +1737,7 @@
                 document.getElementById('custom-ref-water').value = editData.refWater;
                 document.getElementById('custom-clicks').value = editData.clicksDefault;
                 document.getElementById('custom-temp').value = editData.tempC;
-                editData.steps.forEach(s => addCustomStepRow(s.time, Math.round(s.pct * editData.refWater), s.desc));
+                editData.steps.forEach(s => addCustomStepRow(s.time, Math.round(s.amount), s.desc));
             } else {
                 const refWater = parseFloat(document.getElementById('water').value) || 500;
                 document.getElementById('custom-name').value = '';
@@ -1681,7 +1796,17 @@
                 if (!/^\d{1,2}:\d{2}$/.test(time)) { showBuilderError(`Tempo inválido: "${time}". Use o formato m:ss, ex: 0:45.`); return; }
                 if (!amount || amount <= 0) { showBuilderError('Cada passo precisa de uma meta em gramas maior que zero.'); return; }
                 if (!desc) { showBuilderError('Cada passo precisa de uma descrição curta.'); return; }
-                steps.push({ time, pct: amount / refWater, desc });
+                // Guardado em gramas absolutos: um percentual arredondado perdia precisão
+                // justamente ao reescalar a receita para outro volume
+                steps.push({ time, amount, desc });
+            }
+
+            // Os alvos são acumulados na balança, então precisam ser crescentes
+            for (let i = 1; i < steps.length; i += 1) {
+                if (steps[i].amount < steps[i - 1].amount) {
+                    showBuilderError(`As metas são o total acumulado na balança, então precisam crescer. O passo ${i + 1} (${steps[i].amount}g) é menor que o anterior (${steps[i - 1].amount}g).`);
+                    return;
+                }
             }
 
             const deviceKey = document.getElementById('device').value;
@@ -1705,6 +1830,7 @@
 
         function deleteCustomRecipe() {
             const recipeKey = document.getElementById('recipe').value;
+            if (!customRecipes.some(r => r.id === recipeKey)) return; // nada a excluir
             if (!confirm('Excluir esta receita? Essa ação não pode ser desfeita.')) return;
             customRecipes = customRecipes.filter(r => r.id !== recipeKey);
             saveCustomRecipes();
@@ -1783,13 +1909,35 @@
         function adjustRatio(amount) {
             const input = document.getElementById('ratio-input');
             const current = parseFloat(input.value);
-            input.value = Math.max(5, Math.round((isNaN(current) ? 15 : current) + amount));
+            // Passo de 0,5 preservando o decimal — arredondar para inteiro tornava
+            // impossível representar proporções oficiais como 1:16.7 ou 1:15.8
+            input.value = formatRatio(clampToInput(input, (isNaN(current) ? 15 : current) + amount));
+            ratioTouched = true;
             update('ratio');
         }
 
+        // A proporção nunca é arredondada para inteiro: é o eixo que o usuário ajusta
+        // livremente e precisa bater exatamente com a água e o café exibidos.
         function getActiveRatio(recipe) {
             const val = parseFloat(document.getElementById('ratio-input').value);
-            return (!isNaN(val) && val > 0) ? Math.round(val) : Math.round(recipe.ratio);
+            return (!isNaN(val) && val > 0) ? val : recipe.ratio;
+        }
+
+        // Uma casa decimal, sem ".0" pendurado em proporções redondas
+        function formatRatio(ratio) {
+            return (Math.round(ratio * 10) / 10).toString();
+        }
+
+        // Limita um valor ao min/max declarados no próprio input. Os atributos min/max
+        // de input[type=number] não impedem valores fora da faixa nem por digitação nem
+        // por atribuição via JS, então a trava precisa ser explícita.
+        function clampToInput(input, value) {
+            const min = parseFloat(input.min);
+            const max = parseFloat(input.max);
+            let v = value;
+            if (!isNaN(min)) v = Math.max(min, v);
+            if (!isNaN(max)) v = Math.min(max, v);
+            return v;
         }
 
         function saveSettings() {
@@ -1804,7 +1952,8 @@
                     water: document.getElementById('water').value,
                     coffee: document.getElementById('coffee').value,
                     balance: document.getElementById('balance-slider').value,
-                    strength: document.getElementById('strength-slider').value
+                    strength: document.getElementById('strength-slider').value,
+                    ratioTouched: ratioTouched
                 }));
             } catch (e) { /* localStorage indisponível (ex: modo privado) — ignora silenciosamente */ }
         }
@@ -1823,6 +1972,7 @@
                 if (saved.coffee) document.getElementById('coffee').value = saved.coffee;
                 if (saved.balance) document.getElementById('balance-slider').value = saved.balance;
                 if (saved.strength) document.getElementById('strength-slider').value = saved.strength;
+                ratioTouched = !!saved.ratioTouched;
             } catch (e) {
                 populateRecipeSelect('v60');
             }
@@ -1844,6 +1994,67 @@
         const balanceTexts = ["Muito Doce", "Mais Doce", "Equilibrado", "Mais Ácido", "Muito Ácido"];
         const strengthTexts = ["Baixa (1 Despejo)", "Média-Baixa (2 Despejos)", "Padrão (3 Despejos)", "Alta (4 Despejos)"];
 
+        // ---------- Proporção ----------
+        // Marca que o usuário assumiu o controle da proporção. Enquanto for false, trocar
+        // de receita adota a proporção oficial dela; depois de true, a escolha do usuário
+        // é preservada e a oficial fica a um toque de distância no botão ao lado.
+        let ratioTouched = false;
+
+        function onRatioInput() {
+            ratioTouched = true;
+            update('ratio');
+        }
+
+        // Trava nos limites só quando o campo perde o foco / é confirmado, para não
+        // atrapalhar quem está digitando "1" antes de chegar em "16.7"
+        function onRatioCommit() {
+            const input = document.getElementById('ratio-input');
+            const val = parseFloat(input.value);
+            if (isNaN(val)) return;
+            input.value = formatRatio(clampToInput(input, val));
+            update('ratio');
+        }
+
+        function restoreOfficialRatio() {
+            const recipe = getCurrentRecipe();
+            if (!recipe) return;
+            document.getElementById('ratio-input').value = formatRatio(recipe.ratio);
+            ratioTouched = false;
+            update('ratio');
+        }
+
+        // Mostra a proporção oficial da receita sempre que a ativa divergir dela,
+        // funcionando ao mesmo tempo como referência visível e botão de restaurar
+        function updateOfficialRatioButton(recipe) {
+            const btn = document.getElementById('ratio-official-btn');
+            const oficial = formatRatio(recipe.ratio);
+            const ativa = formatRatio(getActiveRatio(recipe));
+            const diverge = oficial !== ativa;
+            btn.classList.toggle('hidden', !diverge);
+            if (diverge) {
+                btn.textContent = `oficial 1:${oficial}`;
+                btn.setAttribute('aria-label', `Restaurar a proporção oficial da receita, 1 para ${oficial}`);
+            }
+        }
+
+        // Deixa visível a dose em que o autor especificou a receita, para o usuário ver
+        // o número original enquanto escala para o próprio volume
+        function updateRefDoseLine(recipe, roast) {
+            const el = document.getElementById('recipe-ref-dose');
+            const partes = [];
+            if (recipe.refDose) {
+                partes.push(`Dose original: <b>${recipe.refDose.coffee}g / ${recipe.refDose.water}ml</b> (1:${formatRatio(recipe.ratio)})`);
+            }
+            const temp = getRecipeTemp(recipe, roast);
+            if (temp.adjusted) {
+                partes.push(`temperatura ajustada pelo app para esta torra`);
+            } else if (temp.label.includes('–')) {
+                partes.push(`faixa de temperatura da receita: <b>${temp.label}</b>`);
+            }
+            el.innerHTML = partes.join(' · ');
+            el.classList.toggle('hidden', partes.length === 0);
+        }
+
         function update(source) {
             if (document.getElementById('recipe').value === '__custom_new__') return;
             clearRecipe();
@@ -1864,10 +2075,14 @@
             if (parseFloat(waterInput.value) < 0) waterInput.value = 0;
 
             if (source === 'device' || source === 'recipe') {
-                // Troca de aparelho/receita: volta para a proporção oficial e dosagem recalculada
-                ratioInput.value = Math.round(recipe.ratio);
+                // A proporção ajustada pelo usuário sobrevive à troca de aparelho/receita —
+                // antes era descartada em silêncio. O botão "oficial" ao lado restaura.
+                if (!ratioTouched) ratioInput.value = formatRatio(recipe.ratio);
+                // A água sai da proporção ATIVA, não de recipe.ratio: usar as duas fontes
+                // fazia a receita saltar de 500ml para 510ml ao primeiro clique no café.
+                const activeRatio = getActiveRatio(recipe);
                 const coffeeVal = parseFloat(coffeeInput.value) || 0;
-                waterInput.value = Math.round(coffeeVal * recipe.ratio);
+                waterInput.value = Math.round(coffeeVal * activeRatio);
             } else if (source === 'coffee' || source === 'ratio') {
                 const activeRatio = getActiveRatio(recipe);
                 const coffeeVal = parseFloat(coffeeInput.value) || 0;
@@ -1885,12 +2100,17 @@
                 clicksInput.value = getDefaultClicks(recipe, roast);
                 tempInput.value = getDefaultTemp(recipe, roast);
             }
-            document.getElementById('grind-derived').textContent = `(${clicksToGrindLevel(clicksInput.value)})`;
+            // O sufixo "estimado" existia nos dados (clicksEstimated) mas nunca chegava à
+            // tela: o app mostrava palpite e medição com a mesma cara
+            const estimado = recipe.clicksEstimated ? ' estimado' : '';
+            document.getElementById('grind-derived').textContent = `(${clicksToGrindLevel(clicksInput.value)}${estimado})`;
 
             const activeRatio = getActiveRatio(recipe);
 
-            document.getElementById('ratio-text').innerText = `Proporção: 1:${activeRatio}`;
+            document.getElementById('ratio-text').innerText = `Proporção: 1:${formatRatio(activeRatio)}`;
             document.getElementById('recipe-note').innerText = recipe.note;
+            updateRefDoseLine(recipe, roast);
+            updateOfficialRatioButton(recipe);
 
             const kasuyaPanel = document.getElementById('kasuya-controls');
             if (recipe.hasKasuyaControls) {
@@ -1907,7 +2127,10 @@
         let timerSteps = [];
         let timerInterval = null;
         let timerElapsed = 0;
-        let timerLastIndex = 0;
+        // Instante (Date.now) correspondente a timerElapsed = 0. O tempo decorrido é sempre
+        // DERIVADO do relógio, nunca contado somando ticks: setInterval acumula deriva e é
+        // estrangulado pelo Android/iOS em segundo plano, o que atrasava o preparo inteiro.
+        let timerAnchor = null;
         let timerAudioCtx = null;
         let countdownInterval = null;
         let isCountingDown = false;
@@ -1916,12 +2139,6 @@
         function parseTimeToSeconds(t) {
             const parts = t.split(':').map(Number);
             return (parts[0] || 0) * 60 + (parts[1] || 0);
-        }
-
-        function formatTimerDisplay(totalSeconds) {
-            const m = Math.floor(totalSeconds / 60);
-            const s = totalSeconds % 60;
-            return `${m}:${s.toString().padStart(2, '0')}`;
         }
 
         // Android e iOS entregam o AudioContext suspenso: sem um resume() dentro
@@ -1999,6 +2216,9 @@
             if (document.visibilityState === 'visible' && timerInterval) {
                 requestWakeLock();
                 ensureAudioReady();
+                // Ressincroniza na hora: enquanto a aba esteve escondida o navegador pode
+                // ter congelado os ticks, mas o café continuou extraindo
+                tickTimer();
             }
         });
 
@@ -2021,26 +2241,31 @@
             if (timerInterval === null && timerElapsed === 0) {
                 hintEl.textContent = 'Toque em Iniciar para começar';
             } else if (next) {
-                hintEl.textContent = `Próximo passo em ${formatTimerDisplay(next.seconds - timerElapsed)}`;
+                hintEl.textContent = `Próximo passo em ${formatTime(next.seconds - timerElapsed)}`;
             } else {
                 hintEl.textContent = 'Última etapa — bom café!';
             }
         }
 
         function updateTimerDisplay() {
-            document.getElementById('timer-display').textContent = formatTimerDisplay(timerElapsed);
+            document.getElementById('timer-display').textContent = formatTime(timerElapsed);
             updateTimerHighlight();
         }
 
         function tickTimer() {
-            timerElapsed++;
-            for (let i = 1; i < timerSteps.length; i++) {
-                if (timerSteps[i].seconds === timerElapsed && i > timerLastIndex) {
-                    timerLastIndex = i;
-                    playTimerBeep();
-                }
+            if (timerAnchor === null) return;
+            const anterior = timerElapsed;
+            timerElapsed = Math.max(0, Math.floor((Date.now() - timerAnchor) / 1000));
+            if (timerElapsed !== anterior) {
+                // Beepa por TODO passo cruzado desde o tick anterior, não só pelo que casa
+                // exatamente com o segundo atual: com a aba em segundo plano um tick perdido
+                // fazia aquele aviso sumir para sempre. Um beep só, mesmo cruzando vários.
+                const cruzouPasso = timerSteps.some((s, i) =>
+                    i > 0 && s.seconds > anterior && s.seconds <= timerElapsed
+                );
+                if (cruzouPasso) playTimerBeep();
+                updateTimerDisplay();
             }
-            updateTimerDisplay();
         }
 
         function startTimer() {
@@ -2065,18 +2290,23 @@
                     countdownInterval = null;
                     isCountingDown = false;
                     if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Pausar'; }
-                    if (displayEl) displayEl.textContent = '0:00';
+                    if (displayEl) displayEl.textContent = formatTime(timerElapsed);
                     playCountdownGo();
                     requestWakeLock();
-                    timerInterval = setInterval(tickTimer, 1000);
+                    // Âncora recuada pelo tempo já decorrido, para o "Continuar" retomar
+                    // exatamente de onde parou
+                    timerAnchor = Date.now() - timerElapsed * 1000;
+                    timerInterval = setInterval(tickTimer, 250);
                     updateTimerHighlight();
                 }
             }, 1000);
         }
 
         function pauseTimer() {
+            tickTimer(); // congela no tempo real do instante da pausa
             clearInterval(timerInterval);
             timerInterval = null;
+            timerAnchor = null;
             releaseWakeLock();
             const btn = document.getElementById('timer-start-btn');
             if (btn) btn.textContent = 'Continuar';
@@ -2095,7 +2325,7 @@
             countdownInterval = null;
             isCountingDown = false;
             timerElapsed = 0;
-            timerLastIndex = 0;
+            timerAnchor = null;
             releaseWakeLock();
             const btn = document.getElementById('timer-start-btn');
             if (btn) { btn.textContent = 'Iniciar'; btn.disabled = false; }
@@ -2107,11 +2337,17 @@
 
         function generateRecipe() {
             const recipe = getCurrentRecipe();
-            const roast = document.getElementById('roast').value;
             const coffee = parseFloat(document.getElementById('coffee').value);
             const water = parseFloat(document.getElementById('water').value);
             const stepsContainer = document.getElementById('steps');
             const errorEl = document.getElementById('form-error');
+
+            if (!recipe) {
+                errorEl.textContent = 'Selecione uma receita antes de calcular.';
+                errorEl.classList.remove('hidden');
+                document.getElementById('recipe-container').classList.add('hidden');
+                return;
+            }
 
             if (!coffee || !water || coffee <= 0 || water <= 0) {
                 errorEl.textContent = 'Informe valores de café e água maiores que zero.';
@@ -2136,14 +2372,17 @@
             `;
             stepsContainer.appendChild(summaryEl);
 
-            let steps;
+            // buildSteps devolve DESCRITORES (alvos acumulados); renderRecipeSteps faz o
+            // arredondamento num lugar só, garantindo que os despejos somem o alvo final
+            let descritores;
             if (recipe.hasKasuyaControls) {
                 const balVal = parseInt(document.getElementById('balance-slider').value);
                 const strVal = parseInt(document.getElementById('strength-slider').value);
-                steps = recipe.buildSteps(coffee, water, balVal, strVal);
+                descritores = recipe.buildSteps(coffee, water, balVal, strVal);
             } else {
-                steps = recipe.buildSteps(coffee, water);
+                descritores = recipe.buildSteps(coffee, water);
             }
+            const steps = renderRecipeSteps(descritores, coffee, water);
 
             steps.forEach((s, i) => {
                 const el = document.createElement('div');
@@ -2161,6 +2400,8 @@
 
         function copyRecipe() {
             const recipe = getCurrentRecipe();
+            if (!recipe) return;
+            const btn = document.querySelector('[aria-label="Copiar receita"]');
             const stepsContainer = document.getElementById('steps');
             const lines = Array.from(stepsContainer.children).map(el => {
                 const time = el.querySelector('.step-time').innerText;
@@ -2169,14 +2410,23 @@
             });
             const text = `BrewCalc — ${recipe.label}\n${lines.join('\n')}`;
 
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(text).then(() => {
-                    const btn = document.querySelector('[aria-label="Copiar receita"]');
-                    const original = btn.textContent;
-                    btn.textContent = 'Copiado!';
-                    setTimeout(() => { btn.textContent = original; }, 1500);
-                }).catch(() => {});
+            // Antes, sem clipboard API ou com a promessa rejeitada o botão não fazia
+            // absolutamente nada — o usuário não tinha como saber que falhou
+            const feedback = msg => {
+                if (!btn) return;
+                const original = btn.dataset.rotulo || btn.textContent;
+                btn.dataset.rotulo = original;
+                btn.textContent = msg;
+                setTimeout(() => { btn.textContent = btn.dataset.rotulo; }, 1800);
+            };
+
+            if (!navigator.clipboard) {
+                feedback('Indisponível');
+                return;
             }
+            navigator.clipboard.writeText(text)
+                .then(() => feedback('Copiado!'))
+                .catch(() => feedback('Falhou'));
         }
 
         // ---------- Abas ----------
@@ -2208,6 +2458,9 @@
         function getBrewSummary() {
             const deviceKey = document.getElementById('device').value;
             const recipe = getCurrentRecipe();
+            // Sem receita selecionada (ex: construtor aberto) o resumo fica neutro em vez
+            // de estourar um TypeError ao acessar recipe.label
+            if (!recipe) return { method: '—', dose: '—', settings: '—' };
             const roast = document.getElementById('roast').value;
             const deviceLabel = deviceData[deviceKey].label;
             const shortRecipeLabel = recipe.label.replace(/\s*\([^)]*\)\s*$/, '');
@@ -2218,14 +2471,16 @@
             const grindLevel = clicksToGrindLevel(clicks);
             const temp = getActiveTemp(recipe, roast);
             const method = `${deviceLabel} · ${shortRecipeLabel}`;
-            const dose = `${coffee}g : ${water}ml (1:${ratio})`;
+            const dose = `${coffee}g : ${water}ml (1:${formatRatio(ratio)})`;
             const settings = `${clicks} cliques (${grindLevel}) · ${temp}°C`;
             return { method, dose, settings };
         }
 
         function updateBrewSummary() {
             const { method, dose, settings } = getBrewSummary();
-            document.getElementById('brew-summary').innerHTML = `Preparado com: <b>${method}</b><br>${dose} · ${settings}`;
+            // `method` carrega o nome da receita, que em receita importada é texto de terceiro
+            document.getElementById('brew-summary').innerHTML =
+                `Preparado com: <b>${escapeHtml(method)}</b><br>${escapeHtml(dose)} · ${escapeHtml(settings)}`;
         }
 
         // ---------- Avaliação sensorial ----------
@@ -2302,8 +2557,26 @@
 
         // maxLines (opcional): corta o texto com reticências em vez de deixar
         // um campo longo empurrar o resto do card para fora do canvas
+        // Quebra uma palavra que sozinha não cabe na largura, para um nome de café sem
+        // espaços não vazar para fora do card
+        function quebrarPalavraLonga(ctx, palavra, maxWidth) {
+            if (ctx.measureText(palavra).width <= maxWidth) return [palavra];
+            const pedacos = [];
+            let atual = '';
+            for (const ch of palavra) {
+                if (atual && ctx.measureText(atual + ch).width > maxWidth) {
+                    pedacos.push(atual);
+                    atual = ch;
+                } else {
+                    atual += ch;
+                }
+            }
+            if (atual) pedacos.push(atual);
+            return pedacos;
+        }
+
         function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
-            const words = text.split(' ');
+            const words = text.split(' ').flatMap(p => quebrarPalavraLonga(ctx, p, maxWidth));
             let line = '';
             let lines = 0;
             for (let n = 0; n < words.length; n++) {
@@ -2395,6 +2668,11 @@
         }
 
         function generateShareImage() {
+            const recipe = getCurrentRecipe();
+            if (!recipe) {
+                alert('Selecione uma receita na aba Calculadora antes de gerar a imagem.');
+                return;
+            }
             const canvas = document.getElementById('share-canvas');
             const ctx = canvas.getContext('2d');
             const W = canvas.width, H = canvas.height;
@@ -2418,7 +2696,6 @@
             const notes = document.getElementById('review-notes').value;
             const ratings = getRatings();
             const brew = getBrewSummary();
-            const recipe = getCurrentRecipe();
 
             // Marca d'água / nome do app
             ctx.fillStyle = '#c9a876';
@@ -2604,7 +2881,9 @@
             a.href = url;
             a.download = `brewcalc-${coffeeName}.png`;
             a.click();
-            URL.revokeObjectURL(url);
+            // Revogar na linha seguinte ao click() cancelava o download no Firefox,
+            // que ainda não tinha lido o blob
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
         }
 
         async function shareImage() {
@@ -2641,14 +2920,60 @@
             }
             pendingImportData = data;
             const deviceLabel = deviceData[data.device].label;
-            document.getElementById('import-recipe-desc').innerHTML =
-                `<b>${data.name}</b><br>${deviceLabel} · ${data.steps.length} passo(s) de despejo`;
+
+            // Montado por DOM com textContent: este bloco recebe o nome da receita vindo
+            // do link e rodava ANTES de qualquer clique do usuário, então um innerHTML
+            // aqui executava JS só por abrir o QR.
+            const descEl = document.getElementById('import-recipe-desc');
+            descEl.textContent = '';
+            const nome = document.createElement('b');
+            nome.textContent = data.name;
+            descEl.appendChild(nome);
+            descEl.appendChild(document.createElement('br'));
+            descEl.appendChild(document.createTextNode(`${deviceLabel} · ${data.steps.length} passo(s) de despejo`));
+
+            openImportOverlay();
+        }
+
+        // ---------- Diálogo de importação (modal acessível) ----------
+        let importFocoAnterior = null;
+
+        function openImportOverlay() {
+            importFocoAnterior = document.activeElement;
             document.getElementById('import-overlay').classList.remove('hidden');
+            const btn = document.getElementById('import-confirm-btn');
+            if (btn) btn.focus();
+            document.addEventListener('keydown', onImportKeydown);
+        }
+
+        function closeImportOverlay() {
+            document.getElementById('import-overlay').classList.add('hidden');
+            document.removeEventListener('keydown', onImportKeydown);
+            if (importFocoAnterior && importFocoAnterior.focus) importFocoAnterior.focus();
+            importFocoAnterior = null;
+        }
+
+        // Esc fecha e Tab fica preso dentro do diálogo — sem isso o teclado passeia
+        // pela página atrás do overlay, que continua visível e clicável
+        function onImportKeydown(e) {
+            if (e.key === 'Escape') { e.preventDefault(); dismissImport(); return; }
+            if (e.key !== 'Tab') return;
+            const foco = document.getElementById('import-overlay').querySelectorAll('button');
+            if (foco.length === 0) return;
+            const primeiro = foco[0];
+            const ultimo = foco[foco.length - 1];
+            if (e.shiftKey && document.activeElement === primeiro) {
+                e.preventDefault();
+                ultimo.focus();
+            } else if (!e.shiftKey && document.activeElement === ultimo) {
+                e.preventDefault();
+                primeiro.focus();
+            }
         }
 
         function dismissImport() {
             pendingImportData = null;
-            document.getElementById('import-overlay').classList.add('hidden');
+            closeImportOverlay();
             history.replaceState(null, '', location.pathname + location.search);
         }
 
@@ -2659,7 +2984,7 @@
             if (existingIdx >= 0) customRecipes[existingIdx] = data; else customRecipes.push(data);
             saveCustomRecipes();
 
-            document.getElementById('import-overlay').classList.add('hidden');
+            closeImportOverlay();
             history.replaceState(null, '', location.pathname + location.search);
 
             document.getElementById('device').value = data.device;
@@ -2676,7 +3001,9 @@
             const btn = document.getElementById('theme-toggle');
             if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
             const metaTheme = document.getElementById('theme-color-meta');
-            if (metaTheme) metaTheme.setAttribute('content', theme === 'light' ? '#f6efe3' : '#1b1410');
+            // Precisa ser o --bg real de cada tema; antes o claro mandava #f6efe3, uma cor
+            // que não existe na tela, e a barra do navegador no celular destoava
+            if (metaTheme) metaTheme.setAttribute('content', theme === 'light' ? '#df7a4e' : '#1b1410');
             try { localStorage.setItem('brewcalc-theme', theme); } catch (e) { /* localStorage indisponível — ignora */ }
         }
 
