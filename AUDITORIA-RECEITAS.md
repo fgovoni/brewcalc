@@ -27,8 +27,10 @@ receita foi conferida contra fontes públicas.
 | V60 (Hoffmann) | proporção | 1:16.**6** | 1:16.**7** | ❌ **CORRIGIDO** |
 | Prensa (Hoffmann) | dose e passos | 30g / 500ml, 4min, crosta, 5min, sem prensar | idênticos | ✅ bate |
 | AeroPress (Hoffmann) | dose e passos | 11g / 200ml, 2min, giro, 30s, prensa | idênticos | ✅ bate |
-| AeroPress (Hoffmann) | temp. torra clara | 95°C | "água fervente" (~100°C) | ⚠️ **DIVERGE** |
+| AeroPress (Hoffmann) | temp. torra clara | 95°C | "água fervente" (~100°C) | ⚠️ **ajustado p/ 97°C** |
 | Kasuya 4:6 | dose e proporção | 20g / 300ml (1:15) | 20g / 300ml (1:15) | ✅ bate |
+| Chemex (Hoffmann) | moagem | 20/21/22 cliques | "média-fina", como o V60 | ⚠️ **ajustado p/ 17/18/19** |
+| Kalita | troca de chaleira | ausente | comum → fluxo restrito | ⚠️ **acrescentado** |
 | Todas | cliques Timemore C2 | 4 marcadas como estimadas | nenhum autor especifica | ⚠️ **CORRIGIDO** (todas marcadas) |
 
 ---
@@ -106,31 +108,34 @@ Kasuya: 20g/300ml, 1:15 exato. Hoffmann V60: 30g/500ml → 1:16.7 (não 1:16.6).
 
 ---
 
-## Divergências que ainda exigem sua decisão
+## Divergências levadas à decisão do dono — resolvidas
 
-Estas **não** foram alteradas, por dependerem de julgamento seu:
-
-1. **Temperatura da torra clara no AeroPress do Hoffmann.** O app usa 95°C. A fonte diz
-   para usar **água fervente** com torras claras (~100°C), reservando 90–95°C para as
-   médias — faixa que o app já traz corretamente. Alterar para 100 é defensável, mas
-   "fervente" é uma instrução, não um número cravado pelo autor, e o campo do app tem
-   máximo de 100. **Decisão sua.**
+1. **Temperatura da torra clara no AeroPress do Hoffmann.** O app usava 95°C; a fonte manda
+   usar **água fervente** com torras claras, reservando 90–95°C para as médias — faixa que o
+   app já trazia certa. **Decidido: 97°C**, meio-termo que reconhece que a torra clara pede
+   mais quente sem cravar um número que o autor não deu.
 
 2. **Moagem do Chemex.** A fonte descreve a moagem do Hoffmann para Chemex como
-   *média-fina*, mas os cliques do app (20–22) caem em "Média/Média-Grossa" — mais grossos
-   que os do V60 (17–19), quando deveriam ser semelhantes. Sugiro aproximar dos valores do
-   V60, mas isso é calibração de moedor, não dado do autor.
+   *média-fina* e a técnica como praticamente a mesma do V60, mas os cliques do app (20–22)
+   eram mais grossos que os do V60 (17–19). **Decidido: igualados ao V60 (17/18/19).**
 
-3. **Todos os números de clique são estimativa.** Nenhum dos autores especifica cliques de
-   Timemore C2 — cada um descreve a moagem em palavras ou no próprio moedor de competição.
-   O app marcava apenas 4 receitas com `clicksEstimated`, o que dava a entender que as
-   outras 4 tinham sido medidas. **Todas as 8 foram marcadas como estimadas.** Se você
-   calibrar alguma no seu C2, remova a marca daquela receita.
+3. **Detalhes de competição.** **Decidido: entra só o que afeta a extração.** A troca de
+   chaleira do McCarthy — de uma comum para uma de fluxo restrito, que amortece a agitação
+   da cama de café — virou instrução no segundo despejo pulsado. O filtro sem enxaguar
+   (McCarthy) e a moagem dupla com peneiragem (Du Jianing) são preparo prévio e continuam
+   nas notas em texto, fora do timer.
 
-4. **Detalhes de competição não representáveis.** Erin McCarthy trocava de chaleira no meio
-   do preparo (comum para bico de fluxo restrito) e não enxaguava o filtro; Du Jianing usava
-   funil e agulha para soltar a cama de café. Estão registrados nas notas em texto, mas não
-   viram passos do timer. Vale avaliar se algum merece virar passo.
+4. **Todos os números de clique são estimativa** (aplicado na auditoria, não era decisão).
+   Nenhum dos autores especifica cliques de Timemore C2 — cada um descreve a moagem em
+   palavras ou no moedor de competição. O app marcava apenas 4 receitas com
+   `clicksEstimated`, dando a entender que as outras 4 haviam sido medidas. **As 8 estão
+   marcadas como estimadas.** Se você calibrar alguma no seu C2, remova a marca dela.
+
+## Em aberto
+
+Nada pendente de decisão. O que resta é trabalho de campo: os parâmetros finos de preparo
+foram conferidos majoritariamente contra fontes secundárias, e ganhariam em precisão se
+fossem batidos contra o vídeo ou texto original de cada autor.
 
 ---
 
