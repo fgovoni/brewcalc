@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BrewCalc — testes</title>
+<style>
+    body {
+        margin: 0; padding: 24px; background: #1b1410; color: #f3e9dd;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px;
+    }
+    h1 { font-family: ui-serif, Georgia, serif; font-size: 22px; margin: 0 0 4px; }
+    .sub { color: #a08b76; margin-bottom: 20px; font-size: 13px; }
+    #placar { padding: 14px 16px; border-radius: 14px; font-weight: 700; margin-bottom: 18px; font-size: 16px; }
+    .verde { background: rgba(124, 174, 111, 0.18); color: #9ed492; border: 1px solid #7cae6f; }
+    .vermelho { background: rgba(224, 102, 74, 0.18); color: #ef8468; border: 1px solid #e0664a; }
+    .grupo { margin-bottom: 6px; color: #e8be6e; font-weight: 700; margin-top: 16px; }
+    .falha { color: #ef8468; padding-left: 14px; line-height: 1.5; }
+    .resumo-grupo { color: #a08b76; padding-left: 14px; }
+    pre { background: #221913; padding: 12px 14px; border-radius: 10px; color: #d8c6b3; overflow-x: auto; }
+    iframe { display: none; }
+</style>
+</head>
+<body>
+<h1>BrewCalc — testes</h1>
+<p class="sub">Carrega o <code>index.html</code> real num iframe e exercita as regras de cálculo. Precisa ser servido por http(s) — abrir por <code>file://</code> bloqueia o acesso ao iframe.</p>
+<div id="placar">Carregando index.html…</div>
+<div id="saida"></div>
+<iframe id="app" src="index.html"></iframe>
+
+<script>
+let ok = 0, fail = 0, grupoAtual = '', falhasDoGrupo = [], testesDoGrupo = 0;
+const saida = document.getElementById('saida');
+
+function grupo(nome) {
+    fecharGrupo();
+    grupoAtual = nome;
+    falhasDoGrupo = [];
+    testesDoGrupo = 0;
+}
+
+function fecharGrupo() {
+    if (!grupoAtual) return;
+    const el = document.createElement('div');
+    el.className = 'grupo';
+    el.textContent = (falhasDoGrupo.length === 0 ? '✓ ' : '✗ ') + grupoAtual + ` (${testesDoGrupo})`;
+    saida.appendChild(el);
+    falhasDoGrupo.forEach(f => {
+        const d = document.createElement('div');
+        d.className = 'falha';
+        d.textContent = '↳ ' + f;
+        saida.appendChild(d);
+    });
+}
+
+function t(nome, cond, detalhe) {
+    testesDoGrupo++;
+    if (cond) { ok++; } else { fail++; falhasDoGrupo.push(nome + (detalhe ? ' :: ' + detalhe : '')); }
+}
+
+function mostrar(texto) {
+    const pre = document.createElement('pre');
+    pre.textContent = texto;
+    saida.appendChild(pre);
+}
+
+document.getElementById('app').addEventListener('load', () => {
+    const w = document.getElementById('app').contentWindow;
+    // `const` no topo de um script clássico não vai para o window, então o acesso é por eval
+    const g = expr => w.eval(expr);
+    let API;
+    try {
+        API = g('({ renderRecipeSteps, formatRatio, clampToInput, getRecipeTemp, deviceData, escapeHtml, clicksToGrindLevel, parseTimeToSeconds, formatTime, decodeRecipeFromParam, buildRecipeShareUrl, toBase64Url, normalizeCustomRecipe })');
+    } catch (e) {
+        document.getElementById('placar').className = 'vermelho';
+        document.getElementById('placar').textContent = 'Não consegui acessar o index.html no iframe: ' + e.message + ' — sirva por http(s), não por file://';
+        return;
+    }
+    rodar(API);
+});
+
+function rodar(A) {
+    const todasReceitas = () => {
+        const out = [];
+        for (const dk of Object.keys(A.deviceData))
+            for (const rk of Object.keys(A.deviceData[dk].recipes))
+                out.push([dk, rk, A.deviceData[dk].recipes[rk]]);
+        return out;
+    };
+
+    // ---------- Fidelidade: os despejos somam o alvo final ----------
+    grupo('Soma dos despejos fecha no alvo, em toda receita e volume');
+    for (const [dk, rk, receita] of todasReceitas()) {
+        for (const water of [150, 200, 250, 300, 320, 333, 400, 500, 1000]) {
+            const coffee = water / receita.ratio;
+            const combos = receita.hasKasuyaControls
+                ? [[1,1],[1,4],[2,2],[3,1],[3,2],[3,3],[3,4],[4,3],[5,1],[5,4]]
+                : [[null, null]];
+            for (const [bal, str] of combos) {
+                const steps = A.renderRecipeSteps(receita.buildSteps(coffee, water, bal, str), coffee, water);
+                const despejos = steps.filter(s => s.pour !== undefined);
+                if (!despejos.length) continue;
+                const soma = despejos.reduce((a, s) => a + s.pour, 0);
+                const alvoFinal = despejos[despejos.length - 1].target;
+                const rot = `${dk}/${rk} água=${water}${bal ? ` bal=${bal} força=${str}` : ''}`;
+                t(`soma==alvo ${rot}`, soma === alvoFinal, `soma=${soma} alvo=${alvoFinal}`);
+                let acc = 0, coerente = true;
+                despejos.forEach(d => { acc += d.pour; if (acc !== d.target) coerente = false; });
+                t(`alvos coerentes ${rot}`, coerente);
+                t(`despejos não-negativos ${rot}`, despejos.every(d => d.pour >= 0));
+                t(`alvo final == água ${rot}`, alvoFinal === Math.round(water), `alvo=${alvoFinal}`);
+            }
+        }
+    }
+
+    // O caso concreto que motivou a correção
+    {
+        const k = A.deviceData.v60.recipes.kasuya;
+        const steps = A.renderRecipeSteps(k.buildSteps(250 / 15, 250, 3, 4), 250 / 15, 250);
+        const d = steps.filter(s => s.pour !== undefined);
+        const soma = d.reduce((a, s) => a + s.pour, 0);
+        t('caso 250ml com 4 despejos soma 250g', soma === 250, `soma=${soma}`);
+        mostrar('Kasuya · 250ml · equilibrado · 4 despejos de força\n' +
+            d.map(s => `  despeje ${s.pour}g   →   alvo ${s.target}g`).join('\n') +
+            `\n  soma dos despejos = ${soma}g`);
+    }
+
+    // ---------- Proporção ----------
+    grupo('Proporção mantém o decimal e bate com a dose de referência');
+    t('16.666… → 16.7', A.formatRatio(500 / 30) === '16.7', A.formatRatio(500 / 30));
+    t('15 → 15 (sem .0)', A.formatRatio(15) === '15');
+    t('380/24 → 15.8', A.formatRatio(380 / 24) === '15.8');
+    t('200/11 → 18.2', A.formatRatio(200 / 11) === '18.2');
+    t('200/18 → 11.1', A.formatRatio(200 / 18) === '11.1');
+    for (const [dk, rk, r] of todasReceitas()) {
+        if (!r.refDose) continue;
+        t(`ratio == refDose ${dk}/${rk}`, Math.abs(r.ratio - r.refDose.water / r.refDose.coffee) < 1e-9);
+    }
+
+    grupo('Limites dos campos são respeitados');
+    t('acima do max trava', A.clampToInput({ min: '5', max: '35' }, 99) === 35);
+    t('abaixo do min trava', A.clampToInput({ min: '5', max: '35' }, 1) === 5);
+    t('valor válido passa', A.clampToInput({ min: '5', max: '35' }, 20) === 20);
+    t('sem max não trava', A.clampToInput({ min: '0', max: '' }, 1e6) === 1e6);
+
+    // ---------- Temperatura ----------
+    grupo('Temperatura preserva a faixa do autor e marca o que é ajuste do app');
+    {
+        const med = A.getRecipeTemp(A.deviceData.aeropress.recipes.hoffmann, 'medium');
+        t('faixa 90–95 preservada', med.label === '90–95°C', med.label);
+        t('faixa não é ajuste do app', med.adjusted === false);
+        const kas = A.getRecipeTemp(A.deviceData.v60.recipes.kasuya, 'dark');
+        t('temp por torra do autor', kas.value === 83 && kas.adjusted === false);
+        t('ajuste por torra é marcado', A.getRecipeTemp(A.deviceData.v60.recipes.hoffmann, 'light').adjusted === true);
+        t('temp base não é marcada como ajuste', A.getRecipeTemp(A.deviceData.v60.recipes.hoffmann, 'medium').adjusted === false);
+    }
+
+    // ---------- Segurança ----------
+    grupo('escapeHtml neutraliza injeção');
+    {
+        const e = A.escapeHtml('<img src=x onerror="alert(1)">');
+        t('sem <', !e.includes('<'));
+        t('sem aspas duplas', !e.includes('"'));
+        t('sem aspas simples', !A.escapeHtml("' onmouseover='x").includes("'"));
+    }
+
+    grupo('Importação por link rejeita payloads malformados');
+    {
+        const enc = o => A.toBase64Url(JSON.stringify(o));
+        const bom = { n: 'Teste', dv: 'v60', rc: 20, rw: 320, ck: 18, tc: 93,
+                      st: [[0, 50, 'Bloom'], [45, 320, 'Final']] };
+        let passou = true;
+        try { A.decodeRecipeFromParam(enc(bom)); } catch (e) { passou = false; }
+        t('aceita payload válido', passou);
+
+        const ruins = {
+            'nome vazio': { n: '' }, 'nome gigante': { n: 'x'.repeat(200) },
+            'nome não-string': { n: { a: 1 } }, 'sem passos': { st: [] },
+            'passos demais': { st: Array(50).fill([0, 10, 'a']) }, 'st não-array': { st: 'nope' },
+            'água zero': { rw: 0 }, 'café negativo': { rc: -5 }, 'temp absurda': { tc: 9999 },
+            'cliques absurdos': { ck: 1e9 },
+            'quantidade não numérica': { st: [[0, 'abc', 'Bloom']] },
+            'descrição vazia': { st: [[0, 50, '']] },
+            'descrição gigante': { st: [[0, 50, 'y'.repeat(200)]] },
+            'passo incompleto': { st: [[0, 50]] },
+            'tempo negativo': { st: [[-10, 50, 'Bloom']] },
+        };
+        for (const nome of Object.keys(ruins)) {
+            let rejeitou = false;
+            try { A.decodeRecipeFromParam(enc(Object.assign({}, bom, ruins[nome]))); }
+            catch (e) { rejeitou = true; }
+            t(`rejeita: ${nome}`, rejeitou);
+        }
+        // O payload de XSS real: se for aceito, precisa sair escapado, nunca como HTML vivo
+        let dadosXss = null;
+        try { dadosXss = A.decodeRecipeFromParam(enc(Object.assign({}, bom, { n: '<img src=x onerror=alert(1)>' }))); } catch (e) { /* rejeitado, ótimo */ }
+        t('payload XSS rejeitado ou escapável', dadosXss === null || !A.escapeHtml(dadosXss.name).includes('<'));
+    }
+
+    // ---------- Compartilhamento ----------
+    grupo('Link de compartilhamento é exato ao reescalar');
+    {
+        const data = { id: 'x', device: 'v60', name: 'Meu método', refCoffee: 20, refWater: 320,
+                       clicksDefault: 18, tempC: 93,
+                       steps: [{ time: '0:00', amount: 50, desc: 'Bloom' },
+                               { time: '0:45', amount: 320, desc: 'Final' }] };
+        const volta = A.decodeRecipeFromParam(A.buildRecipeShareUrl(data).param);
+        t('nome sobrevive', volta.name === data.name);
+        t('água de referência sobrevive', volta.refWater === 320);
+        t('quantidade exata sobrevive', volta.steps[0].amount === 50, String(volta.steps[0].amount));
+        const escalado = Math.round(400 * (volta.steps[0].amount / volta.refWater));
+        t('50g/320ml reescalado a 400ml dá 63g (não 62)', escalado === 63, `deu ${escalado}`);
+        t('tempos sobrevivem', volta.steps[1].time === '0:45', volta.steps[1].time);
+    }
+
+    grupo('Migração do formato antigo salvo no navegador');
+    {
+        const novo = A.normalizeCustomRecipe({ refWater: 320, steps: [{ time: '0:00', pct: 0.15625, desc: 'Bloom' }] });
+        t('pct vira gramas absolutos', novo.steps[0].amount === 50, String(novo.steps[0].amount));
+    }
+
+    grupo('Helpers de tempo e moagem');
+    t('1:30 → 90s', A.parseTimeToSeconds('1:30') === 90);
+    t('90s → 1:30', A.formatTime(90) === '1:30');
+    t('ida e volta do tempo', [0, 45, 75, 195, 585].every(s => A.parseTimeToSeconds(A.formatTime(s)) === s));
+    t('13 cliques = Fina', A.clicksToGrindLevel(13) === 'Fina');
+    t('18 cliques = Média-Fina', A.clicksToGrindLevel(18) === 'Média-Fina');
+    t('30 cliques = Grossa', A.clicksToGrindLevel(30) === 'Grossa');
+
+    fecharGrupo();
+    grupoAtual = '';
+
+    const placar = document.getElementById('placar');
+    placar.className = fail === 0 ? 'verde' : 'vermelho';
+    placar.textContent = fail === 0
+        ? `✓ Todos os ${ok} testes passaram`
+        : `✗ ${fail} de ${ok + fail} testes falharam`;
+}
+</script>
+</body>
+</html>
