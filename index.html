@@ -1259,12 +1259,25 @@
             return null; // dados longos demais para caber num QR de até 271 bytes (versão 10, nível L)
         }
 
+        function roundRectPath(ctx, x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+        }
+
         function drawQRCodeOnCanvas(ctx, qrObj, x, y, size) {
             const count = qrObj.getModuleCount();
             const quietModules = 4;
             const moduleSize = size / (count + quietModules * 2);
+            // Cartão claro com cantos arredondados; a zona silenciosa continua
+            // quadrada por dentro, então o arredondamento não atrapalha a leitura
             ctx.fillStyle = '#fdfaf5';
-            ctx.fillRect(x, y, size, size);
+            roundRectPath(ctx, x, y, size, size, 18);
+            ctx.fill();
             ctx.fillStyle = '#1b1410';
             for (let row = 0; row < count; row += 1) {
                 for (let col = 0; col < count; col += 1) {
@@ -2287,13 +2300,19 @@
             }
         }
 
-        function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+        // maxLines (opcional): corta o texto com reticências em vez de deixar
+        // um campo longo empurrar o resto do card para fora do canvas
+        function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
             const words = text.split(' ');
             let line = '';
             let lines = 0;
             for (let n = 0; n < words.length; n++) {
                 const testLine = line + words[n] + ' ';
                 if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+                    if (maxLines && lines === maxLines - 1) {
+                        ctx.fillText(line.trimEnd() + '…', x, y + lines * lineHeight);
+                        return y + lines * lineHeight + lineHeight;
+                    }
                     ctx.fillText(line, x, y + lines * lineHeight);
                     line = words[n] + ' ';
                     lines++;
@@ -2472,7 +2491,7 @@
                 ctx.fillText('NOTAS SENSORIAIS', rightX, rightBottomY);
                 ctx.fillStyle = '#e8be6e';
                 ctx.font = 'italic 400 28px system-ui, sans-serif';
-                rightBottomY = wrapCanvasText(ctx, notes, rightX, rightBottomY + 36, colW - 20, 34) + 6;
+                rightBottomY = wrapCanvasText(ctx, notes, rightX, rightBottomY + 36, colW - 20, 34, 6) + 6;
             }
 
             let chartY = Math.max(leftBottomY, rightBottomY) + 30;
@@ -2481,9 +2500,32 @@
             // (Hoffmann, Kasuya etc.) já vêm embutidas em qualquer instalação do app.
             const isCustomRecipe = !!recipe.isCustom;
 
-            // Gráfico de radar (um pouco menor quando há QR, pra sobrar espaço embaixo)
-            const chartRadius = isCustomRecipe ? 300 : 340;
-            const chartCenterY = chartY + chartRadius + 70;
+            // Gera o QR antes de medir: o painel só é reservado se ele realmente existir
+            let qrObj = null;
+            let rawData = null;
+            if (isCustomRecipe) {
+                rawData = getCurrentCustomRawData();
+                if (rawData) {
+                    try { qrObj = generateRecipeQR(buildRecipeShareUrl(rawData).url); }
+                    catch (e) { qrObj = null; }
+                }
+            }
+
+            const footerY = H - 55;
+            const qrPanelH = 250;
+            // Espaço reservado embaixo: painel do QR, ou só o aviso de receita longa demais
+            const reservado = qrObj ? qrPanelH + 46 : (rawData ? 86 : 0);
+            const chartBottom = footerY - 40 - reservado;
+
+            // O radar encolhe para caber no que sobrou em vez de vazar do canvas.
+            // labelPad cobre os rótulos, que ficam a radius+55 do centro mais a altura da fonte.
+            const labelPad = 92;
+            const raioMin = 170;
+            // Trava: mesmo com o bloco de detalhes muito alto, o radar não começa
+            // abaixo do ponto em que o raio mínimo ainda caberia
+            chartY = Math.min(chartY, chartBottom - labelPad * 2 - raioMin * 2);
+            const chartRadius = Math.max(raioMin, Math.min(340, Math.floor((chartBottom - chartY - labelPad * 2) / 2)));
+            const chartCenterY = chartY + labelPad + chartRadius;
             drawRadarChart(ctx, W / 2, chartCenterY, chartRadius, ratings);
 
             // Nota média
@@ -2496,41 +2538,50 @@
             ctx.font = '500 22px system-ui, sans-serif';
             ctx.fillText('MÉDIA', W / 2, chartCenterY + 24);
 
-            let cursorY = chartCenterY + chartRadius + 70;
+            if (qrObj) {
+                // Painel horizontal: QR à esquerda, chamada à direita. Gasta bem menos
+                // altura que o QR centralizado com legenda embaixo.
+                const panelW = 720;
+                const panelX = (W - panelW) / 2;
+                const panelY = footerY - 40 - qrPanelH;
 
-            if (isCustomRecipe) {
-                const rawData = getCurrentCustomRawData();
-                let qrObj = null;
-                let shareUrl = null;
-                if (rawData) {
-                    try {
-                        const shared = buildRecipeShareUrl(rawData);
-                        shareUrl = shared.url;
-                        qrObj = generateRecipeQR(shareUrl);
-                    } catch (e) { qrObj = null; }
-                }
-                if (qrObj) {
-                    const qrSize = 280;
-                    const qrX = (W - qrSize) / 2;
-                    drawQRCodeOnCanvas(ctx, qrObj, qrX, cursorY, qrSize);
-                    cursorY += qrSize + 24;
-                    ctx.fillStyle = '#c9a876';
-                    ctx.font = '600 26px system-ui, sans-serif';
-                    ctx.textAlign = 'center';
-                    cursorY = wrapCanvasText(ctx, 'Escaneie para importar esta receita no BrewCalc', W / 2, cursorY, W - 200, 32) - 10;
-                } else if (rawData) {
-                    ctx.fillStyle = '#8a7360';
-                    ctx.font = '500 24px system-ui, sans-serif';
-                    ctx.textAlign = 'center';
-                    cursorY = wrapCanvasText(ctx, 'Receita longa demais para gerar o QR de importação', W / 2, cursorY + 10, W - 200, 30);
-                }
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.045)';
+                roundRectPath(ctx, panelX, panelY, panelW, qrPanelH, 30);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(201, 168, 118, 0.32)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                const qrSize = 190;
+                const qrX = panelX + 30;
+                const qrY = panelY + (qrPanelH - qrSize) / 2;
+                drawQRCodeOnCanvas(ctx, qrObj, qrX, qrY, qrSize);
+
+                const textX = qrX + qrSize + 36;
+                const midY = panelY + qrPanelH / 2;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'alphabetic';
+                ctx.fillStyle = '#e8be6e';
+                ctx.font = '700 36px system-ui, sans-serif';
+                ctx.fillText('Aponte a câmera', textX, midY - 26);
+                ctx.fillStyle = '#f3e9dd';
+                ctx.font = '600 30px system-ui, sans-serif';
+                ctx.fillText('para importar esta', textX, midY + 16);
+                ctx.fillText('receita no BrewCalc', textX, midY + 54);
+            } else if (rawData) {
+                ctx.fillStyle = '#8a7360';
+                ctx.font = '500 24px system-ui, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'alphabetic';
+                wrapCanvasText(ctx, 'Receita longa demais para gerar o QR de importação', W / 2, footerY - 70, W - 200, 30);
             }
 
-            // Rodapé — URL do site (empurrado pra baixo do QR quando presente)
+            // Rodapé — URL do site, sempre ancorado na base do canvas
             ctx.fillStyle = '#8a7360';
             ctx.font = '500 28px system-ui, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('fgovoni.github.io/brewcalc', W / 2, Math.max(cursorY + 20, H - 55));
+            ctx.textBaseline = 'alphabetic';
+            ctx.fillText('fgovoni.github.io/brewcalc', W / 2, footerY);
 
             document.getElementById('share-preview').classList.remove('hidden');
             document.getElementById('share-preview').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
