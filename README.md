@@ -17,6 +17,7 @@ Uma calculadora interativa e aplicativo de avaliação para receitas de café co
 - **Compartilhamento por QR Code**: Receitas customizadas viram um link com os dados embutidos no próprio endereço. Quem abre vê uma confirmação com nome, método e número de passos antes de importar — nenhum servidor no meio.
 - **Exportação para Stories**: Gere e baixe imagens otimizadas para Instagram Stories (1080x1920) com os detalhes do preparo, do café e o gráfico de avaliação. Em receitas customizadas o card já sai com o QR de importação.
 - **Interface**: Design responsivo, minimalista e com alternância entre Tema Claro e Escuro.
+- **Funciona offline**: instalável na tela inicial do celular e abre sem rede — pensado para o uso real, com o aparelho ao lado da balança na cozinha.
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -34,7 +35,13 @@ O único recurso externo é o script de contagem de acessos do [GoatCounter](htt
 O projeto é 100% *client-side*. Não há necessidade de build ou servidor.
 Basta fazer o download do código e abrir o arquivo `index.html` em qualquer navegador web moderno (desktop ou mobile).
 
-Duas ressalvas para quem abrir direto do disco (`file://`): o compartilhamento por QR depende de um endereço `http(s)` para gerar links que funcionem em outro aparelho, e a trava de tela (Wake Lock) só é liberada pelos navegadores em contexto seguro (`https` ou `localhost`). Servido pelo GitHub Pages, ambos funcionam normalmente.
+Três ressalvas para quem abrir direto do disco (`file://`): o compartilhamento por QR depende de um endereço `http(s)` para gerar links que funcionem em outro aparelho; a trava de tela (Wake Lock) só é liberada pelos navegadores em contexto seguro; e o service worker não é registrado, então o app não abre offline. Servido pelo GitHub Pages, os três funcionam normalmente.
+
+### Instalar no celular
+
+Abra o site e use "Adicionar à tela de início" (Android: menu do Chrome; iOS: botão de compartilhar no Safari). O app passa a abrir em tela cheia, sem barra de navegador, e **funciona sem rede** — o service worker (`sw.js`) mantém a página em cache.
+
+A atualização é automática: quando há rede, o app busca sempre a versão publicada e só recorre ao cache se a rede falhar. Assim uma correção de receita nunca fica presa numa cópia velha.
 
 ## 🧪 Testes
 

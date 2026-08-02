@@ -6,7 +6,11 @@
     <meta name="description" content="BrewCalc — calculadora de receitas de café coado com métodos e receitas de baristas campeões mundiais (V60, Chemex, Kalita Wave, Origami, Prensa Francesa, AeroPress).">
     <meta name="theme-color" content="#1b1410" id="theme-color-meta">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232a1f18'/%3E%3Cg transform='rotate(-18 32 32)'%3E%3Cellipse cx='32' cy='32' rx='17' ry='25' fill='%23d9a441'/%3E%3Cpath d='M32 10c-6 9-6 33 0 44' stroke='%232a1f18' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232a1f18'/%3E%3Cg transform='rotate(-18 32 32)'%3E%3Cellipse cx='32' cy='32' rx='17' ry='25' fill='%23d9a441'/%3E%3Cpath d='M32 10c-6 9-6 33 0 44' stroke='%232a1f18' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="BrewCalc">
     <title>BrewCalc</title>
     <script>
         // Aplica o tema antes do primeiro paint, para evitar flash da cor errada
@@ -3027,6 +3031,17 @@
         function syncThemeToggleIcon() {
             const current = document.documentElement.getAttribute('data-theme') || 'dark';
             applyTheme(current);
+        }
+
+        // ---------- Service worker: faz o app abrir sem rede ----------
+        // Só registra em contexto seguro (https ou localhost); em file:// os navegadores
+        // recusam, então a ausência de service worker é esperada e não é erro.
+        if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(() => {
+                    /* sem service worker o app funciona igual, só não abre offline */
+                });
+            });
         }
 
         syncThemeToggleIcon();
