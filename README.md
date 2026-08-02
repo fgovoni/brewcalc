@@ -25,7 +25,9 @@ Uma calculadora interativa e aplicativo de avaliação para receitas de café co
 - **APIs do navegador**: Web Audio API para os beeps, Vibration API no celular, Screen Wake Lock API para manter a tela acesa durante o preparo e Canvas 2D para o gráfico de radar e o card de compartilhamento.
 - **Gerador de QR próprio**: Implementado no próprio arquivo, sem CDN nem pacote externo.
 
-Tudo vive em um único `index.html`, sem etapa de build e **sem nenhuma requisição externa** — nenhum CDN, fonte remota, script de analytics ou chamada de rede. Depois de carregada, a página funciona inteiramente offline.
+Tudo vive em um único `index.html`, sem etapa de build. Nenhuma biblioteca, CDN ou fonte remota: toda a lógica, o gerador de QR e os gráficos são código próprio no arquivo.
+
+O único recurso externo é o script de contagem de acessos do [GoatCounter](https://www.goatcounter.com/) — sem cookies e sem dados pessoais. Ele é assíncrono, então o app funciona normalmente se for bloqueado ou falhar; para desligar a analytics, basta remover aquela linha do `<head>`. Fora essa chamada, a página não faz nenhuma requisição depois de carregada.
 
 ## 📦 Como Executar
 
