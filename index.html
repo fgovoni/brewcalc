@@ -115,6 +115,8 @@
             transition: background-color .2s ease, border-color .2s ease;
         }
         .theme-toggle:hover { background: var(--field); }
+        .install-btn { border-color: var(--blue); color: var(--blue-light); }
+        .install-btn svg { width: 19px; height: 19px; }
         .icon-badge { background: var(--blue); padding: 8px; border-radius: 50%; line-height: 0; flex-shrink: 0; }
         .icon-badge svg { width: 24px; height: 24px; color: #fff; }
         h1 {
@@ -453,7 +455,7 @@
         }
         .import-dialog { max-width: 380px; margin: 0; width: 100%; }
         .import-dialog h2 { margin-bottom: 10px; }
-        #import-recipe-desc {
+        #import-recipe-desc, .dialog-desc {
             font-size: 14px; color: var(--muted-light); margin-bottom: 20px; line-height: 1.5;
             overflow-wrap: anywhere;
         }
@@ -482,6 +484,9 @@
                     <p id="ratio-text">Proporção: 1:17</p>
                 </div>
             </div>
+            <button type="button" class="theme-toggle install-btn hidden" id="install-btn" aria-label="Instalar o BrewCalc no aparelho" title="Instalar o app" onclick="onInstallClick()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 11l5 5 5-5"></path><path d="M4 20h16"></path></svg>
+            </button>
             <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Alternar tema claro/escuro" onclick="toggleTheme()">🌙</button>
         </div>
 
@@ -770,10 +775,20 @@
         </div>
     </div>
 
+    <div id="ios-install-overlay" class="import-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ios-install-title">
+        <div class="card import-dialog">
+            <h2 id="ios-install-title">Instalar no iPhone</h2>
+            <p class="dialog-desc">Toque em <b>Compartilhar</b> na barra do Safari e escolha <b>“Adicionar à Tela de Início”</b>. O BrewCalc passa a abrir em tela cheia e a funcionar sem internet.</p>
+            <div class="builder-actions">
+                <button type="button" class="btn-primary" id="ios-install-ok" onclick="fecharIosInstall()">Entendi</button>
+            </div>
+        </div>
+    </div>
+
     <div id="import-overlay" class="import-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="import-title">
         <div class="card import-dialog">
             <h2 id="import-title">⭐ Importar receita?</h2>
-            <p id="import-recipe-desc"></p>
+            <p id="import-recipe-desc" class="dialog-desc"></p>
             <div class="builder-actions">
                 <button type="button" class="btn-primary btn-secondary" onclick="dismissImport()">Ignorar</button>
                 <button type="button" class="btn-primary" id="import-confirm-btn" onclick="confirmImport()">Importar</button>
@@ -3032,6 +3047,73 @@
             const current = document.documentElement.getAttribute('data-theme') || 'dark';
             applyTheme(current);
         }
+
+        // ---------- Convite de instalação ----------
+        // O caminho nativo é ruim de achar: no Android fica enterrado no menu do Chrome e
+        // no iOS o Safari não oferece nada. O botão do cabeçalho torna isso visível.
+        let promptInstalacao = null;
+
+        function appJaInstalado() {
+            return window.matchMedia('(display-mode: standalone)').matches
+                || navigator.standalone === true;
+        }
+
+        function ehIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent);
+        }
+
+        function mostrarBotaoInstalar(mostrar) {
+            const btn = document.getElementById('install-btn');
+            if (btn) btn.classList.toggle('hidden', !mostrar);
+        }
+
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault(); // troca o banner automático do Chrome pelo nosso botão
+            promptInstalacao = e;
+            if (!appJaInstalado()) mostrarBotaoInstalar(true);
+        });
+
+        window.addEventListener('appinstalled', () => {
+            promptInstalacao = null;
+            mostrarBotaoInstalar(false);
+        });
+
+        function onInstallClick() {
+            if (promptInstalacao) {
+                promptInstalacao.prompt();
+                promptInstalacao.userChoice.finally(() => {
+                    // O evento só pode ser usado uma vez; o Chrome dispara outro se couber
+                    promptInstalacao = null;
+                    mostrarBotaoInstalar(false);
+                });
+                return;
+            }
+            abrirIosInstall(); // Safari não expõe prompt programático — resta ensinar
+        }
+
+        let iosFocoAnterior = null;
+
+        function abrirIosInstall() {
+            iosFocoAnterior = document.activeElement;
+            document.getElementById('ios-install-overlay').classList.remove('hidden');
+            const ok = document.getElementById('ios-install-ok');
+            if (ok) ok.focus();
+            document.addEventListener('keydown', onIosInstallKeydown);
+        }
+
+        function fecharIosInstall() {
+            document.getElementById('ios-install-overlay').classList.add('hidden');
+            document.removeEventListener('keydown', onIosInstallKeydown);
+            if (iosFocoAnterior && iosFocoAnterior.focus) iosFocoAnterior.focus();
+            iosFocoAnterior = null;
+        }
+
+        function onIosInstallKeydown(e) {
+            if (e.key === 'Escape') { e.preventDefault(); fecharIosInstall(); }
+        }
+
+        // O Safari nunca dispara beforeinstallprompt, então no iOS o botão é revelado direto
+        if (ehIOS() && !appJaInstalado()) mostrarBotaoInstalar(true);
 
         // ---------- Service worker: faz o app abrir sem rede ----------
         // Só registra em contexto seguro (https ou localhost); em file:// os navegadores
