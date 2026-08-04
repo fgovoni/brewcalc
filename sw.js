@@ -13,6 +13,7 @@ const CACHE = 'brewcalc-v2';
 const ARQUIVOS = [
     './',
     './index.html',
+    './css/estilo.css',
     './manifest.webmanifest',
     './icon.svg',
     './icon-192.png',
