@@ -11,6 +11,31 @@ import { getBrewSummary, getCurrentRecipe } from './estado.js';
 import { getRatings } from './avaliacao.js';
 import { getCurrentCustomRawData } from './receitas-custom.js';
 
+const LEGENDA_QR = 'Aponte a câmera para importar esta receita';
+
+// Largura do painel do QR e corpo da legenda.
+//
+// O painel era dimensionado só pelo QR (lado + 120). Como o QR encolhe quando
+// sobra pouco espaço vertical, a legenda — que tem largura fixa — passava a ser
+// mais larga que o quadro e vazava pelas laterais. Agora o painel considera os
+// dois, e se nem o canvas inteiro comportar o texto, a fonte cede.
+function ajustarLegendaQR(ctx, legenda, ladoQR, larguraCanvas) {
+    const margemLateral = 40;   // respiro entre o painel e a borda do cartão
+    const padding = 40;         // respiro entre o texto e a borda do painel
+    const painelMax = larguraCanvas - margemLateral * 2;
+
+    let fonte = 28;
+    const larguraCom = f => {
+        ctx.font = `700 ${f}px system-ui, sans-serif`;
+        return ctx.measureText(legenda).width;
+    };
+    while (fonte > 18 && larguraCom(fonte) + padding * 2 > painelMax) fonte -= 1;
+
+    const panelW = Math.min(painelMax,
+        Math.max(ladoQR + 120, Math.ceil(larguraCom(fonte)) + padding * 2));
+    return { fonte, panelW };
+}
+
 // maxLines (opcional): corta o texto com reticências em vez de deixar
 // um campo longo empurrar o resto do card para fora do canvas
 // Quebra uma palavra que sozinha não cabe na largura, para um nome de café sem
@@ -281,7 +306,8 @@ function generateShareImage() {
     if (qrObj) {
         // QR centralizado com a chamada embaixo: o código precisa ser grande o
         // bastante para ser lido, e é ele que manda no layout do painel.
-        const panelW = ladoQR + 120;
+        const legenda = ajustarLegendaQR(ctx, LEGENDA_QR, ladoQR, W);
+        const panelW = legenda.panelW;
         const panelX = Math.round((W - panelW) / 2);
         const panelY = footerY - 40 - qrPanelH;
 
@@ -299,8 +325,8 @@ function generateShareImage() {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'alphabetic';
         ctx.fillStyle = '#e8be6e';
-        ctx.font = '700 28px system-ui, sans-serif';
-        ctx.fillText('Aponte a câmera para importar esta receita', W / 2, qrY + ladoQR + 46);
+        ctx.font = `700 ${legenda.fonte}px system-ui, sans-serif`;
+        ctx.fillText(LEGENDA_QR, W / 2, qrY + ladoQR + 46);
     } else if (rawData) {
         ctx.fillStyle = '#8a7360';
         ctx.font = '500 24px system-ui, sans-serif';
@@ -356,4 +382,7 @@ async function shareImage() {
     } catch (e) { /* usuário cancelou o compartilhamento — nada a fazer */ }
 }
 
-export { drawRadarChart, wrapCanvasText, generateShareImage, downloadShareImage, shareImage };
+export {
+    drawRadarChart, wrapCanvasText, generateShareImage, downloadShareImage, shareImage,
+    ajustarLegendaQR, LEGENDA_QR,
+};

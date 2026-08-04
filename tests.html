@@ -37,6 +37,7 @@ import { escapeHtml, clicksToGrindLevel, formatTime, parseTimeToSeconds, formatR
 import { renderRecipeSteps, getRecipeTemp, buildCustomRecipeObject, temMeta, normalizeCustomRecipe } from './js/receitas.js';
 import { deviceData } from './js/receitas-dados.js';
 import { toBase64Url, buildRecipeShareUrl, decodeRecipeFromParam, generateRecipeQR } from './js/compartilhar.js';
+import { ajustarLegendaQR, LEGENDA_QR } from './js/cartao.js';
 
 let ok = 0, fail = 0, grupoAtual = '', falhasDoGrupo = [], testesDoGrupo = 0;
 const saida = document.getElementById('saida');
@@ -87,7 +88,7 @@ document.getElementById('app').addEventListener('load', () => {
         escapeHtml, clicksToGrindLevel, formatTime, parseTimeToSeconds, formatRatio,
         clampToInput, renderRecipeSteps, getRecipeTemp, buildCustomRecipeObject, temMeta,
         normalizeCustomRecipe, deviceData, toBase64Url, buildRecipeShareUrl,
-        decodeRecipeFromParam, generateRecipeQR,
+        decodeRecipeFromParam, generateRecipeQR, ajustarLegendaQR, LEGENDA_QR,
     };
     // Sem isto uma exceção no meio da bateria interrompia tudo e o placar ficava
     // parado em "Carregando…" — parecia travamento, não falha.
@@ -395,6 +396,81 @@ function rodar(A) {
             t('clique em filho do botão também dispara', parseFloat(agua.value) === antes + 10);
             clicar('aguaMenos');
         }
+    }
+
+    // Este é o caminho que deixou passar uma regressão: salvar a receita gravava no
+    // localStorage mas não repopulava o seletor, e só aparecia ao recarregar a página.
+    // Nenhum teste criava receita pela interface — todos usavam as funções direto.
+    grupo('Criar receita pela interface faz ela aparecer no seletor');
+    {
+        const d = document.getElementById('app').contentDocument;
+        const w = document.getElementById('app').contentWindow;
+        const clicar = acao => d.querySelector(`[data-acao="${acao}"]`)
+            .dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+        const mudar = el => el.dispatchEvent(new w.Event('change', { bubbles: true }));
+
+        const nome = 'Receita de teste ' + Date.now();
+        const seletor = d.getElementById('recipe');
+        const antes = seletor.options.length;
+
+        // Abre o construtor pela opção "criar" do próprio seletor, como o usuário faz
+        seletor.value = '__custom_new__';
+        mudar(seletor);
+        t('o construtor abriu', !d.getElementById('recipe-builder-card').classList.contains('hidden'));
+
+        // O construtor já abre com três passos preenchidos a partir da água atual,
+        // então o usuário só precisa dar um nome — é esse o caminho mínimo real.
+        t('o construtor já vem com passos', d.querySelectorAll('.custom-step-row').length === 3,
+          `${d.querySelectorAll('.custom-step-row').length} passos`);
+        d.getElementById('custom-name').value = nome;
+
+        clicar('salvarReceita');
+
+        const erro = d.getElementById('custom-recipe-error');
+        t('salvou sem erro de validação', erro.classList.contains('hidden'), erro.textContent);
+        t('o construtor fechou', d.getElementById('recipe-builder-card').classList.contains('hidden'));
+
+        const nomes = Array.from(seletor.options).map(o => o.textContent);
+        t('a receita aparece no seletor SEM recarregar', nomes.some(n => n.includes(nome)),
+          `opções: ${nomes.join(' | ')}`);
+        t('o seletor cresceu', seletor.options.length > antes, `${antes} → ${seletor.options.length}`);
+        t('a receita nova fica selecionada',
+          Array.from(seletor.selectedOptions).some(o => o.textContent.includes(nome)));
+
+        // Limpa o que o teste criou, para não poluir o localStorage de quem rodou
+        const criada = Array.from(seletor.options).find(o => o.textContent.includes(nome));
+        if (criada) {
+            seletor.value = criada.value;
+            mudar(seletor);
+            w.confirm = () => true;   // deleteCustomRecipe pede confirmação
+            clicar('excluirReceita');
+            const restantes = Array.from(seletor.options).map(o => o.textContent);
+            t('excluir some com a receita do seletor', !restantes.some(n => n.includes(nome)));
+        }
+    }
+
+    grupo('A legenda do QR cabe dentro do painel');
+    {
+        // Regressão: o painel era dimensionado só pelo QR (lado + 120). Quando sobrava
+        // pouco espaço vertical o QR encolhia, e a legenda — de largura fixa — passava
+        // a ser mais larga que o quadro, vazando pelas laterais do cartão.
+        const ctx = document.createElement('canvas').getContext('2d');
+        const W = 1080;
+        const larguraDo = (texto, fonte) => {
+            ctx.font = `700 ${fonte}px system-ui, sans-serif`;
+            return ctx.measureText(texto).width;
+        };
+        for (const ladoQR of [180, 240, 320, 430, 600]) {
+            const { fonte, panelW } = A.ajustarLegendaQR(ctx, A.LEGENDA_QR, ladoQR, W);
+            const larguraTexto = larguraDo(A.LEGENDA_QR, fonte);
+            t(`QR de ${ladoQR}px: a legenda cabe no painel`, larguraTexto <= panelW,
+              `texto=${Math.round(larguraTexto)} painel=${panelW}`);
+            t(`QR de ${ladoQR}px: o painel cabe no cartão`, panelW <= W - 80, `painel=${panelW}`);
+            t(`QR de ${ladoQR}px: o QR cabe no painel`, ladoQR <= panelW,
+              `qr=${ladoQR} painel=${panelW}`);
+        }
+        // A fonte só cede quando precisa: em cartão largo ela fica no corpo cheio
+        t('mantém 28px quando há espaço', A.ajustarLegendaQR(ctx, A.LEGENDA_QR, 430, W).fonte === 28);
     }
 
     grupo('Helpers de tempo e moagem');

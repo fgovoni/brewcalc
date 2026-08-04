@@ -745,6 +745,16 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     });
 }
 
+// Salvar, excluir ou cancelar uma receita customizada muda o que a tela precisa
+// mostrar, mas quem sabe redesenhar é este arquivo. Sem este registro o módulo de
+// receitas fica com o callback vazio: a receita é gravada no localStorage e não
+// aparece no seletor até recarregar a página.
+registrarRedesenho((deviceKey, recipeKey) => {
+    // Cancelar não mexeu na lista, só na seleção — aí não há o que repopular.
+    if (deviceKey) populateRecipeSelect(deviceKey, recipeKey);
+    update('recipe');
+});
+
 syncThemeToggleIcon();
 buildRatingSliders();
 loadCustomRecipes();
