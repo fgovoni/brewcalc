@@ -775,12 +775,12 @@
         </div>
     </div>
 
-    <div id="ios-install-overlay" class="import-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ios-install-title">
+    <div id="install-help-overlay" class="import-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="install-help-title">
         <div class="card import-dialog">
-            <h2 id="ios-install-title">Instalar no iPhone</h2>
-            <p class="dialog-desc">Toque em <b>Compartilhar</b> na barra do Safari e escolha <b>“Adicionar à Tela de Início”</b>. O BrewCalc passa a abrir em tela cheia e a funcionar sem internet.</p>
+            <h2 id="install-help-title"></h2>
+            <p id="install-help-desc" class="dialog-desc"></p>
             <div class="builder-actions">
-                <button type="button" class="btn-primary" id="ios-install-ok" onclick="fecharIosInstall()">Entendi</button>
+                <button type="button" class="btn-primary" id="install-help-ok" onclick="fecharAjudaInstalacao()">Entendi</button>
             </div>
         </div>
     </div>
@@ -3060,12 +3060,36 @@
         let promptInstalacao = null;
 
         function appJaInstalado() {
-            return window.matchMedia('(display-mode: standalone)').matches
-                || navigator.standalone === true;
+            // matchMedia é protegido igual ao script de tema no <head>: esta função roda
+            // na inicialização, e uma exceção aqui derrubaria todo o arranque do app
+            const standalone = window.matchMedia
+                && window.matchMedia('(display-mode: standalone)').matches;
+            return !!standalone || navigator.standalone === true;
         }
 
         function ehIOS() {
             return /iPad|iPhone|iPod/.test(navigator.userAgent);
+        }
+
+        function ehAndroid() {
+            return /Android/.test(navigator.userAgent);
+        }
+
+        // Cada plataforma esconde a instalação num lugar diferente. Quando não há prompt
+        // programático disponível, resta apontar onde fica.
+        function instrucaoDeInstalacao() {
+            if (ehIOS()) return {
+                titulo: 'Instalar no iPhone',
+                texto: 'Toque em <b>Compartilhar</b> na barra do Safari e escolha <b>“Adicionar à Tela de Início”</b>.'
+            };
+            if (ehAndroid()) return {
+                titulo: 'Instalar no Android',
+                texto: 'Abra o menu <b>⋮</b> do navegador e escolha <b>“Instalar app”</b> — em alguns aparelhos aparece como <b>“Adicionar à tela inicial”</b>.'
+            };
+            return {
+                titulo: 'Instalar no computador',
+                texto: 'Clique no ícone de <b>instalar</b> à direita da barra de endereço do navegador.'
+            };
         }
 
         function mostrarBotaoInstalar(mostrar) {
@@ -3094,32 +3118,38 @@
                 });
                 return;
             }
-            abrirIosInstall(); // Safari não expõe prompt programático — resta ensinar
+            abrirAjudaInstalacao(); // sem prompt programático — resta ensinar o caminho
         }
 
-        let iosFocoAnterior = null;
+        let ajudaFocoAnterior = null;
 
-        function abrirIosInstall() {
-            iosFocoAnterior = document.activeElement;
-            document.getElementById('ios-install-overlay').classList.remove('hidden');
-            const ok = document.getElementById('ios-install-ok');
+        function abrirAjudaInstalacao() {
+            const { titulo, texto } = instrucaoDeInstalacao();
+            document.getElementById('install-help-title').textContent = titulo;
+            document.getElementById('install-help-desc').innerHTML = texto;
+            ajudaFocoAnterior = document.activeElement;
+            document.getElementById('install-help-overlay').classList.remove('hidden');
+            const ok = document.getElementById('install-help-ok');
             if (ok) ok.focus();
-            document.addEventListener('keydown', onIosInstallKeydown);
+            document.addEventListener('keydown', onAjudaInstalacaoKeydown);
         }
 
-        function fecharIosInstall() {
-            document.getElementById('ios-install-overlay').classList.add('hidden');
-            document.removeEventListener('keydown', onIosInstallKeydown);
-            if (iosFocoAnterior && iosFocoAnterior.focus) iosFocoAnterior.focus();
-            iosFocoAnterior = null;
+        function fecharAjudaInstalacao() {
+            document.getElementById('install-help-overlay').classList.add('hidden');
+            document.removeEventListener('keydown', onAjudaInstalacaoKeydown);
+            if (ajudaFocoAnterior && ajudaFocoAnterior.focus) ajudaFocoAnterior.focus();
+            ajudaFocoAnterior = null;
         }
 
-        function onIosInstallKeydown(e) {
-            if (e.key === 'Escape') { e.preventDefault(); fecharIosInstall(); }
+        function onAjudaInstalacaoKeydown(e) {
+            if (e.key === 'Escape') { e.preventDefault(); fecharAjudaInstalacao(); }
         }
 
-        // O Safari nunca dispara beforeinstallprompt, então no iOS o botão é revelado direto
-        if (ehIOS() && !appJaInstalado()) mostrarBotaoInstalar(true);
+        // O botão aparece sempre que o app não estiver rodando instalado, mesmo sem
+        // beforeinstallprompt. Depender do evento deixava o convite invisível justamente
+        // no celular: o preventDefault suprime a barrinha do Chrome no Android, então
+        // quando o evento não chegava o usuário ficava sem os dois caminhos.
+        if (!appJaInstalado()) mostrarBotaoInstalar(true);
 
         // ---------- Service worker: faz o app abrir sem rede ----------
         // Só registra em contexto seguro (https ou localhost); em file:// os navegadores
