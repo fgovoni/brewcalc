@@ -26,6 +26,8 @@ const ARQUIVOS = [
     './js/estado.js',
     './js/avaliacao.js',
     './js/cartao.js',
+    './js/instalacao.js',
+    './js/app.js',
     './manifest.webmanifest',
     './icon.svg',
     './icon-192.png',
