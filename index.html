@@ -1379,10 +1379,19 @@
             ctx.closePath();
         }
 
+        const QR_QUIET_MODULES = 4;
+
+        // Lado em pixels que o QR vai realmente ocupar: sempre um múltiplo inteiro do
+        // número de módulos. Com módulo fracionário, arredondar cada quadradinho deforma
+        // a grade e nenhum leitor consegue ler o código.
+        function qrDrawSize(qrObj, maxSize) {
+            const total = qrObj.getModuleCount() + QR_QUIET_MODULES * 2;
+            return Math.max(1, Math.floor(maxSize / total)) * total;
+        }
+
         function drawQRCodeOnCanvas(ctx, qrObj, x, y, size) {
             const count = qrObj.getModuleCount();
-            const quietModules = 4;
-            const moduleSize = size / (count + quietModules * 2);
+            const moduleSize = size / (count + QR_QUIET_MODULES * 2);
             // Cartão claro com cantos arredondados; a zona silenciosa continua
             // quadrada por dentro, então o arredondamento não atrapalha a leitura
             ctx.fillStyle = '#fdfaf5';
@@ -1392,10 +1401,11 @@
             for (let row = 0; row < count; row += 1) {
                 for (let col = 0; col < count; col += 1) {
                     if (qrObj.isDark(row, col)) {
-                        const px = Math.round(x + (quietModules + col) * moduleSize);
-                        const py = Math.round(y + (quietModules + row) * moduleSize);
-                        const pw = Math.ceil(moduleSize);
-                        ctx.fillRect(px, py, pw, pw);
+                        ctx.fillRect(
+                            x + (QR_QUIET_MODULES + col) * moduleSize,
+                            y + (QR_QUIET_MODULES + row) * moduleSize,
+                            moduleSize, moduleSize
+                        );
                     }
                 }
             }
@@ -2819,7 +2829,7 @@
 
             function renderDetailColumn(items, x, startY) {
                 items.forEach(([label, value], idx) => {
-                    const py = startY + idx * 90;
+                    const py = startY + idx * 78;
                     ctx.fillStyle = '#8a7360';
                     ctx.font = '600 24px system-ui, sans-serif';
                     ctx.fillText(label.toUpperCase(), x, py);
@@ -2827,7 +2837,7 @@
                     ctx.font = '600 34px system-ui, sans-serif';
                     ctx.fillText(value, x, py + 38);
                 });
-                return startY + items.length * 90;
+                return startY + items.length * 78;
             }
 
             const leftBottomY = renderDetailColumn(leftDetails, leftX, dy);
@@ -2840,7 +2850,7 @@
                 ctx.fillText('NOTAS SENSORIAIS', rightX, rightBottomY);
                 ctx.fillStyle = '#e8be6e';
                 ctx.font = 'italic 400 28px system-ui, sans-serif';
-                rightBottomY = wrapCanvasText(ctx, notes, rightX, rightBottomY + 36, colW - 20, 34, 6) + 6;
+                rightBottomY = wrapCanvasText(ctx, notes, rightX, rightBottomY + 36, colW - 20, 34, 4) + 6;
             }
 
             let chartY = Math.max(leftBottomY, rightBottomY) + 30;
@@ -2861,18 +2871,25 @@
             }
 
             const footerY = H - 55;
-            const qrPanelH = 250;
+            // labelPad cobre os rótulos, que ficam a radius+55 do centro mais a altura da fonte
+            const labelPad = 88;
+            const raioMin = 125;
+            const alturaLegendaQR = 96;
+
+            // Reparte o espaço abaixo dos detalhes entre o radar e o painel do QR.
+            // O QR tem prioridade: abaixo de ~4 pixels por módulo nenhuma câmera o lê,
+            // enquanto o radar continua compreensível menor. Antes o radar tinha a
+            // preferência e era empurrado para cima, invadindo o bloco de detalhes.
+            const espacoLivre = footerY - 40 - chartY;
+            const radarMinimo = raioMin * 2 + labelPad * 2;
+            const tetoQR = Math.max(0, espacoLivre - radarMinimo - 46 - alturaLegendaQR);
+            const ladoQR = qrObj ? qrDrawSize(qrObj, Math.min(430, tetoQR)) : 0;
+            const qrPanelH = qrObj ? ladoQR + alturaLegendaQR : 0;
             // Espaço reservado embaixo: painel do QR, ou só o aviso de receita longa demais
             const reservado = qrObj ? qrPanelH + 46 : (rawData ? 86 : 0);
             const chartBottom = footerY - 40 - reservado;
 
-            // O radar encolhe para caber no que sobrou em vez de vazar do canvas.
-            // labelPad cobre os rótulos, que ficam a radius+55 do centro mais a altura da fonte.
-            const labelPad = 92;
-            const raioMin = 170;
-            // Trava: mesmo com o bloco de detalhes muito alto, o radar não começa
-            // abaixo do ponto em que o raio mínimo ainda caberia
-            chartY = Math.min(chartY, chartBottom - labelPad * 2 - raioMin * 2);
+            // O radar usa o que sobrou, sem nunca subir para cima dos detalhes
             const chartRadius = Math.max(raioMin, Math.min(340, Math.floor((chartBottom - chartY - labelPad * 2) / 2)));
             const chartCenterY = chartY + labelPad + chartRadius;
             drawRadarChart(ctx, W / 2, chartCenterY, chartRadius, ratings);
@@ -2888,10 +2905,10 @@
             ctx.fillText('MÉDIA', W / 2, chartCenterY + 24);
 
             if (qrObj) {
-                // Painel horizontal: QR à esquerda, chamada à direita. Gasta bem menos
-                // altura que o QR centralizado com legenda embaixo.
-                const panelW = 720;
-                const panelX = (W - panelW) / 2;
+                // QR centralizado com a chamada embaixo: o código precisa ser grande o
+                // bastante para ser lido, e é ele que manda no layout do painel.
+                const panelW = ladoQR + 120;
+                const panelX = Math.round((W - panelW) / 2);
                 const panelY = footerY - 40 - qrPanelH;
 
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.045)';
@@ -2901,22 +2918,15 @@
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
-                const qrSize = 190;
-                const qrX = panelX + 30;
-                const qrY = panelY + (qrPanelH - qrSize) / 2;
-                drawQRCodeOnCanvas(ctx, qrObj, qrX, qrY, qrSize);
+                const qrX = Math.round((W - ladoQR) / 2);
+                const qrY = panelY + 24;
+                drawQRCodeOnCanvas(ctx, qrObj, qrX, qrY, ladoQR);
 
-                const textX = qrX + qrSize + 36;
-                const midY = panelY + qrPanelH / 2;
-                ctx.textAlign = 'left';
+                ctx.textAlign = 'center';
                 ctx.textBaseline = 'alphabetic';
                 ctx.fillStyle = '#e8be6e';
-                ctx.font = '700 36px system-ui, sans-serif';
-                ctx.fillText('Aponte a câmera', textX, midY - 26);
-                ctx.fillStyle = '#f3e9dd';
-                ctx.font = '600 30px system-ui, sans-serif';
-                ctx.fillText('para importar esta', textX, midY + 16);
-                ctx.fillText('receita no BrewCalc', textX, midY + 54);
+                ctx.font = '700 28px system-ui, sans-serif';
+                ctx.fillText('Aponte a câmera para importar esta receita', W / 2, qrY + ladoQR + 46);
             } else if (rawData) {
                 ctx.fillStyle = '#8a7360';
                 ctx.font = '500 24px system-ui, sans-serif';
