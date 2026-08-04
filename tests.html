@@ -74,7 +74,7 @@ function mostrar(texto) {
     saida.appendChild(pre);
 }
 
-document.getElementById('app').addEventListener('load', () => {
+async function iniciarBateria() {
     const w = document.getElementById('app').contentWindow;
     // Os testes de tela precisam do app carregado; window.BrewCalc é a superfície
     // que o app declara de propósito, porque escopo de módulo não é visível de fora.
@@ -93,7 +93,7 @@ document.getElementById('app').addEventListener('load', () => {
     // Sem isto uma exceção no meio da bateria interrompia tudo e o placar ficava
     // parado em "Carregando…" — parecia travamento, não falha.
     try {
-        rodar(API);
+        await rodar(API);
     } catch (e) {
         fecharGrupo();
         const placar = document.getElementById('placar');
@@ -101,7 +101,20 @@ document.getElementById('app').addEventListener('load', () => {
         placar.textContent = `✗ a bateria abortou em "${grupoAtual}": ${e.message}`;
         mostrar(e.stack || String(e));
     }
-});
+}
+
+// Este arquivo é módulo, e módulo é adiado: o iframe pode terminar de carregar
+// ANTES desta linha rodar, e aí um addEventListener('load') puro nunca dispara —
+// a bateria ficava parada em "Carregando…" de forma intermitente. Com script
+// clássico a corrida não existia, porque ele executava durante o parse.
+{
+    const frame = document.getElementById('app');
+    const jaCarregou = frame.contentDocument
+        && frame.contentDocument.readyState === 'complete'
+        && frame.contentWindow.BrewCalc;
+    if (jaCarregou) iniciarBateria();
+    else frame.addEventListener('load', iniciarBateria);
+}
 
 // Erro dentro do app (no iframe) não aparece aqui por padrão; sem isso um módulo
 // que falha ao carregar viraria um teste vermelho sem explicação.
@@ -109,7 +122,24 @@ window.addEventListener('error', e => {
     if (e.filename && !e.filename.endsWith('tests.html')) mostrar('erro no app: ' + e.message + ' — ' + e.filename);
 });
 
-function rodar(A) {
+// Espera: sob tempo virtual do headless os timers adiantam, então isto não
+// custa os segundos que aparenta.
+const esperar = ms => new Promise(r => setTimeout(r, ms));
+
+// Carrega uma instância nova do app numa URL específica — necessário para os
+// fluxos que acontecem na inicialização, como importar receita vinda de link.
+function carregarApp(url) {
+    return new Promise((resolve, reject) => {
+        const frame = document.createElement('iframe');
+        frame.style.display = 'none';
+        frame.src = url;
+        frame.addEventListener('load', () => resolve(frame));
+        frame.addEventListener('error', reject);
+        document.body.appendChild(frame);
+    });
+}
+
+async function rodar(A) {
     const todasReceitas = () => {
         const out = [];
         for (const dk of Object.keys(A.deviceData))
@@ -447,6 +477,314 @@ function rodar(A) {
             const restantes = Array.from(seletor.options).map(o => o.textContent);
             t('excluir some com a receita do seletor', !restantes.some(n => n.includes(nome)));
         }
+    }
+
+    // ---------- Fluxos de ponta a ponta ----------
+    // Os testes acima exercitam funções; estes exercitam caminhos. A distinção não é
+    // academica: a regressão do seletor passou por 799 testes verdes porque nenhum
+    // percorria o caminho do usuário, só chamava as funções que ele aciona.
+
+    grupo('Importar receita vinda de link');
+    {
+        // O caminho do QR inteiro: um link com a receita embutida abre o app, mostra a
+        // confirmação e só grava depois do aceite. Roda numa instância nova porque
+        // checkImportFromUrl só acontece na inicialização.
+        const receita = {
+            id: 'teste-import-' + Date.now(), device: 'v60', name: 'Vinda por link',
+            refCoffee: 20, refWater: 320, clicksDefault: 18, tempC: 93,
+            steps: [{ time: '0:00', amount: 50, desc: 'Bloom' },
+                    { time: '0:45', amount: 320, desc: 'Final' }],
+        };
+        const { param } = A.buildRecipeShareUrl(receita);
+
+        const frame = await carregarApp('index.html#r=' + param);
+        const d = frame.contentDocument;
+        const w = frame.contentWindow;
+        const clicar = acao => d.querySelector(`[data-acao="${acao}"]`)
+            .dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+
+        t('o app abriu pedindo confirmação',
+            !d.getElementById('import-overlay').classList.contains('hidden'));
+        t('a confirmação mostra o nome da receita',
+            d.getElementById('import-recipe-desc').textContent.includes('Vinda por link'),
+            d.getElementById('import-recipe-desc').textContent);
+        t('nada foi gravado antes do aceite',
+            !Array.from(d.getElementById('recipe').options).some(o => o.textContent.includes('Vinda por link')));
+
+        clicar('confirmarImportacao');
+
+        t('o diálogo fechou', d.getElementById('import-overlay').classList.contains('hidden'));
+        const nomes = Array.from(d.getElementById('recipe').options).map(o => o.textContent);
+        t('a receita entrou no seletor', nomes.some(n => n.includes('Vinda por link')), nomes.join(' | '));
+        t('a receita importada fica selecionada',
+            Array.from(d.getElementById('recipe').selectedOptions).some(o => o.textContent.includes('Vinda por link')));
+        t('o hash foi limpo da barra de endereço', !w.location.hash.includes('#r='), w.location.hash);
+
+        // Limpa: a receita foi gravada no localStorage compartilhado
+        w.confirm = () => true;
+        clicar('excluirReceita');
+        frame.remove();
+    }
+
+    grupo('Ignorar a importação não grava nada');
+    {
+        const receita = {
+            id: 'teste-ignora-' + Date.now(), device: 'v60', name: 'Recusada',
+            refCoffee: 20, refWater: 320, clicksDefault: 18, tempC: 93,
+            steps: [{ time: '0:00', amount: 50, desc: 'Bloom' }],
+        };
+        const { param } = A.buildRecipeShareUrl(receita);
+        const frame = await carregarApp('index.html#r=' + param);
+        const d = frame.contentDocument, w = frame.contentWindow;
+        d.querySelector('[data-acao="ignorarImportacao"]')
+            .dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+
+        t('o diálogo fechou', d.getElementById('import-overlay').classList.contains('hidden'));
+        t('a receita recusada não entrou no seletor',
+            !Array.from(d.getElementById('recipe').options).some(o => o.textContent.includes('Recusada')));
+        // Conferir só o seletor não bastava: recusar não repopula o seletor, então a
+        // receita podia estar gravada e o teste passaria assim mesmo. O que importa é
+        // não ter ido para o armazenamento.
+        t('a receita recusada não foi gravada',
+            !(w.localStorage.getItem('brewcalc-custom-recipes') || '').includes('Recusada'),
+            w.localStorage.getItem('brewcalc-custom-recipes'));
+        frame.remove();
+    }
+
+    grupo('Link corrompido não abre diálogo nem quebra o app');
+    {
+        const frame = await carregarApp('index.html#r=isto-nao-e-base64-valido!!');
+        const d = frame.contentDocument;
+        t('nenhum diálogo de importação', d.getElementById('import-overlay').classList.contains('hidden'));
+        t('o app carregou normalmente', !!frame.contentWindow.BrewCalc);
+        t('o seletor tem as receitas oficiais', d.getElementById('recipe').options.length >= 2);
+        frame.remove();
+    }
+
+    grupo('Editar receita existente preserva os dados');
+    {
+        const d = document.getElementById('app').contentDocument;
+        const w = document.getElementById('app').contentWindow;
+        const clicar = acao => d.querySelector(`[data-acao="${acao}"]`)
+            .dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+        const mudar = el => el.dispatchEvent(new w.Event('change', { bubbles: true }));
+        const seletor = d.getElementById('recipe');
+
+        const nome = 'Para editar ' + Date.now();
+        seletor.value = '__custom_new__';
+        mudar(seletor);
+        d.getElementById('custom-name').value = nome;
+        d.getElementById('custom-ref-water').value = '400';
+        clicar('salvarReceita');
+
+        clicar('editarReceita');
+        t('o construtor reabriu', !d.getElementById('recipe-builder-card').classList.contains('hidden'));
+        t('o nome veio preenchido', d.getElementById('custom-name').value === nome,
+          d.getElementById('custom-name').value);
+        t('a água de referência veio preenchida',
+          parseFloat(d.getElementById('custom-ref-water').value) === 400,
+          d.getElementById('custom-ref-water').value);
+        t('os passos vieram preenchidos', d.querySelectorAll('.custom-step-row').length === 3,
+          `${d.querySelectorAll('.custom-step-row').length}`);
+
+        // Editar e salvar não deve duplicar a receita
+        const antes = seletor.options.length;
+        d.getElementById('custom-name').value = nome + ' v2';
+        clicar('salvarReceita');
+        t('editar não duplica a receita', seletor.options.length === antes,
+          `${antes} → ${seletor.options.length}`);
+        t('o nome novo aparece',
+          Array.from(seletor.options).some(o => o.textContent.includes(nome + ' v2')));
+
+        w.confirm = () => true;
+        clicar('excluirReceita');
+    }
+
+    grupo('Cancelar o construtor volta para uma receita real');
+    {
+        // Este caminho passa pelo callback de redesenho SEM deviceKey — o ramo que
+        // repopula nada e só atualiza. Era o único do callback nunca executado.
+        const d = document.getElementById('app').contentDocument;
+        const w = document.getElementById('app').contentWindow;
+        const seletor = d.getElementById('recipe');
+        seletor.value = '__custom_new__';
+        seletor.dispatchEvent(new w.Event('change', { bubbles: true }));
+        t('o construtor abriu', !d.getElementById('recipe-builder-card').classList.contains('hidden'));
+
+        // Sujar a tela de propósito: só o redesenho disparado pelo cancelar repõe
+        // estes valores. Sem isso o teste passava mesmo com o callback desligado,
+        // porque fechar o construtor e mexer no seletor o próprio cancelar já faz.
+        d.getElementById('water').value = '9999';
+        d.getElementById('recipe-note').textContent = 'LIXO';
+
+        d.querySelector('[data-acao="cancelarReceita"]')
+            .dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+        t('o construtor fechou', d.getElementById('recipe-builder-card').classList.contains('hidden'));
+        t('o seletor saiu de "criar"', seletor.value !== '__custom_new__', seletor.value);
+        t('voltou a mostrar os campos da receita oficial',
+            !d.getElementById('official-recipe-fields').classList.contains('hidden'));
+        t('a tela foi redesenhada: a água voltou ao valor da receita',
+            d.getElementById('water').value !== '9999', d.getElementById('water').value);
+        t('a tela foi redesenhada: a nota da receita voltou',
+            d.getElementById('recipe-note').textContent !== 'LIXO',
+            d.getElementById('recipe-note').textContent.slice(0, 40));
+    }
+
+    grupo('Timer: contagem regressiva, andamento e zerar');
+    {
+        const d = document.getElementById('app').contentDocument;
+        const w = document.getElementById('app').contentWindow;
+        const clicar = acao => d.querySelector(`[data-acao="${acao}"]`)
+            .dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+
+        clicar('calcularReceita');
+        const botao = d.getElementById('timer-start-btn');
+        const display = d.getElementById('timer-display');
+        t('o timer começa zerado', display.textContent === '0:00', display.textContent);
+        t('o botão começa em Iniciar', botao.textContent === 'Iniciar', botao.textContent);
+
+        clicar('alternarTimer');
+        t('entra em contagem regressiva', display.textContent === '3', display.textContent);
+        t('o botão trava durante a contagem', botao.disabled === true);
+
+        await esperar(3400);
+        t('depois da contagem o timer está rodando', botao.textContent !== 'Iniciar', botao.textContent);
+        t('o botão destrava', botao.disabled === false);
+        t('o display voltou ao formato de tempo', /^\d+:\d\d$/.test(display.textContent),
+          display.textContent);
+
+        // Precisa avançar de verdade antes de zerar: se o display continuar em 0:00,
+        // a asserção do zerar passa sem provar nada — foi o que a mutação mostrou.
+        await esperar(2200);
+        t('o tempo avança enquanto roda', display.textContent !== '0:00', display.textContent);
+
+        clicar('zerarTimer');
+        t('zerar volta o display para 0:00', display.textContent === '0:00', display.textContent);
+        t('zerar volta o botão para Iniciar', botao.textContent === 'Iniciar', botao.textContent);
+    }
+
+    grupo('Proporção: ajustar, restaurar a oficial');
+    {
+        const d = document.getElementById('app').contentDocument;
+        const w = document.getElementById('app').contentWindow;
+        const clicar = acao => d.querySelector(`[data-acao="${acao}"]`)
+            .dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+
+        d.getElementById('device').value = 'v60';
+        d.getElementById('device').dispatchEvent(new w.Event('change', { bubbles: true }));
+        const campo = d.getElementById('ratio-input');
+        const oficial = campo.value;
+
+        clicar('razaoMais');
+        t('ajustar muda a proporção exibida', campo.value !== oficial, `${oficial} → ${campo.value}`);
+        const botaoOficial = d.getElementById('ratio-official-btn');
+        t('o atalho para a proporção oficial aparece', !botaoOficial.classList.contains('hidden'));
+
+        clicar('razaoOficial');
+        t('restaurar volta ao valor oficial', campo.value === oficial, `${campo.value} vs ${oficial}`);
+        t('o atalho some depois de restaurar', botaoOficial.classList.contains('hidden'));
+
+        // A proporção ajustada precisa sobreviver à troca de receita — foi bug antes
+        clicar('razaoMenos');
+        const ajustada = campo.value;
+        ['chemex', 'v60'].forEach(dev => {
+            d.getElementById('device').value = dev;
+            d.getElementById('device').dispatchEvent(new w.Event('change', { bubbles: true }));
+        });
+        t('a proporção ajustada sobrevive à troca de aparelho', campo.value === ajustada,
+          `${ajustada} → ${campo.value}`);
+        clicar('razaoOficial');
+    }
+
+    grupo('Steppers mexem no campo certo');
+    {
+        const d = document.getElementById('app').contentDocument;
+        const w = document.getElementById('app').contentWindow;
+        const clicar = acao => d.querySelector(`[data-acao="${acao}"]`)
+            .dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+
+        for (const [mais, menos, campo, passo] of [
+            ['tempMais', 'tempMenos', 'temp-input', 1],
+            ['cliquesMais', 'cliquesMenos', 'clicks-input', 1],
+            ['cafeMais', 'cafeMenos', 'coffee', 1],
+        ]) {
+            const el = d.getElementById(campo);
+            const antes = parseFloat(el.value);
+            clicar(mais);
+            t(`${mais} soma ${passo}`, parseFloat(el.value) === antes + passo,
+              `${antes} → ${el.value}`);
+            clicar(menos);
+            t(`${menos} devolve ao valor original`, parseFloat(el.value) === antes, el.value);
+        }
+    }
+
+    grupo('Trocar aparelho e torra redesenha a receita');
+    {
+        const d = document.getElementById('app').contentDocument;
+        const w = document.getElementById('app').contentWindow;
+        const mudar = id => d.getElementById(id).dispatchEvent(new w.Event('change', { bubbles: true }));
+
+        d.getElementById('device').value = 'aeropress';
+        mudar('device');
+        t('trocar de aparelho troca as receitas do seletor',
+          Array.from(d.getElementById('recipe').options).length > 0);
+        t('a nota da receita acompanha', d.getElementById('recipe-note').textContent.length > 0);
+
+        const tempAntes = d.getElementById('temp-input').value;
+        d.getElementById('roast').value = 'dark';
+        mudar('roast');
+        t('trocar a torra ajusta a temperatura', d.getElementById('temp-input').value !== tempAntes,
+          `${tempAntes} → ${d.getElementById('temp-input').value}`);
+
+        d.getElementById('device').value = 'v60';
+        mudar('device');
+        d.getElementById('roast').value = 'medium';
+        mudar('roast');
+    }
+
+    grupo('Gerar a imagem do cartão');
+    {
+        // Atravessa app -> cartao -> compartilhar -> qr, a cadeia mais longa do app.
+        const d = document.getElementById('app').contentDocument;
+        const w = document.getElementById('app').contentWindow;
+        const clicar = acao => d.querySelector(`[data-acao="${acao}"]`)
+            .dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+
+        clicar('abaAvaliacao');
+        d.getElementById('coffee-name').value = 'Café de teste';
+        clicar('gerarImagem');
+
+        t('a prévia aparece', !d.getElementById('share-preview').classList.contains('hidden'));
+        const canvas = d.getElementById('share-canvas');
+        t('o cartão tem o tamanho de Stories', canvas.width === 1080 && canvas.height === 1920,
+          `${canvas.width}x${canvas.height}`);
+
+        // Contar cores, não bytes: um PNG de 1080x1920 em branco ainda passa de 5KB de
+        // dataURL, então tamanho não distingue "desenhou" de "não desenhou". Canvas
+        // intocado tem uma cor só; o cartão tem fundo em gradiente, texto e o QR.
+        const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+        const cores = new Set();
+        for (let i = 0; i < pixels.length; i += 4 * 997) {
+            cores.add(`${pixels[i]},${pixels[i + 1]},${pixels[i + 2]},${pixels[i + 3]}`);
+        }
+        t('o cartão foi realmente desenhado', cores.size > 5, `${cores.size} cores distintas`);
+        clicar('abaCalculadora');
+    }
+
+    grupo('Alternar o tema e persistir a escolha');
+    {
+        const d = document.getElementById('app').contentDocument;
+        const w = document.getElementById('app').contentWindow;
+        const antes = d.documentElement.getAttribute('data-theme');
+        d.querySelector('[data-acao="alternarTema"]')
+            .dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+        const depois = d.documentElement.getAttribute('data-theme');
+        t('o tema muda', depois !== antes, `${antes} → ${depois}`);
+        t('a escolha é gravada', w.localStorage.getItem('brewcalc-theme') === depois,
+          w.localStorage.getItem('brewcalc-theme'));
+        d.querySelector('[data-acao="alternarTema"]')
+            .dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+        t('volta ao tema original', d.documentElement.getAttribute('data-theme') === antes);
     }
 
     grupo('A legenda do QR cabe dentro do painel');
