@@ -353,66 +353,26 @@
         </div>
     </div>
 
-    <script>
-        // Nomes de receita e descrições de passo podem vir de um link compartilhado, ou
-        // seja, são texto controlado por terceiros. Sempre escapar antes de montar HTML.
-        function escapeHtml(str) {
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
+    <script type="module">
+        import { qrcode } from './js/qr.js';
+        import {
+            escapeHtml, clicksToGrindLevel, formatTime, parseTimeToSeconds,
+            formatRatio, clampToInput, formatDateBR, numeroValido, textoValido,
+        } from './js/formato.js';
+        import {
+            renderRecipeSteps, getDefaultClicks, getRecipeTemp, getDefaultTemp,
+            buildCustomRecipeObject, temMeta, normalizeCustomRecipe,
+        } from './js/receitas.js';
+        import { KASUYA_BALANCE, deviceData } from './js/receitas-dados.js';
+        import {
+            toBase64Url, buildRecipeShareUrl, decodeRecipeFromParam,
+            generateRecipeQR, roundRectPath, qrDrawSize, drawQRCodeOnCanvas,
+        } from './js/compartilhar.js';
 
-        // Faixa de cliques (referência Timemore C2) por nível de moagem — usada para
-        // derivar automaticamente o nome da moagem a partir do número de cliques.
-        function clicksToGrindLevel(clicks) {
-            const c = parseFloat(clicks);
-            if (isNaN(c)) return '—';
-            if (c < 14) return 'Fina';
-            if (c < 19) return 'Média-Fina';
-            if (c < 23) return 'Média';
-            if (c < 27) return 'Média-Grossa';
-            return 'Grossa';
-        }
 
-        function getDefaultClicks(recipe, roast) {
-            if (recipe.clicksByRoast) return recipe.clicksByRoast[roast];
-            if (recipe.clicksDefault) return recipe.clicksDefault;
-            return 18;
-        }
 
-        // Temperatura como dado estruturado, não como string de exibição. Antes, uma
-        // receita que especificava "90°C - 95°C" tinha o número extraído por regex e o
-        // app ficava sempre com o limite inferior, escondendo a faixa do autor.
-        // Retorna { value, label, adjusted }:
-        //   value    — número que alimenta o campo
-        //   label    — o que a receita de fato especifica (pode ser faixa)
-        //   adjusted — true quando o valor é ajuste do app por torra, não número do autor
-        function getRecipeTemp(recipe, roast) {
-            const spec = recipe.tempByRoast && recipe.tempByRoast[roast];
-            if (spec !== undefined) {
-                if (Array.isArray(spec)) return { value: spec[0], label: `${spec[0]}–${spec[1]}°C`, adjusted: false };
-                return { value: spec, label: `${spec}°C`, adjusted: false };
-            }
-            if (recipe.tempBase !== undefined) {
-                if (roast === 'light') {
-                    const v = Math.min(99, recipe.tempBase + 3);
-                    return { value: v, label: `${v}°C`, adjusted: true };
-                }
-                if (roast === 'dark') {
-                    const v = Math.max(78, recipe.tempBase - 5);
-                    return { value: v, label: `${v}°C`, adjusted: true };
-                }
-                return { value: recipe.tempBase, label: `${recipe.tempBase}°C`, adjusted: false };
-            }
-            return { value: 92, label: '92°C', adjusted: true };
-        }
 
-        function getDefaultTemp(recipe, roast) {
-            return getRecipeTemp(recipe, roast).value;
-        }
+
 
         function getActiveClicks(recipe, roast) {
             const val = parseInt(document.getElementById('clicks-input').value);
@@ -444,529 +404,18 @@
             saveSettings();
         }
 
-        // ---------- Gerador de QR Code (embutido, sem dependências externas) ----------
-        // Implementação enxuta baseada no algoritmo público de QR Code (modo Byte,
-        // versões 1 a 10, nível de correção L) — suficiente para URLs curtas como
-        // as usadas para compartilhar receitas customizadas.
-        var qrcode = (function () {
-            var QRMode = { MODE_8BIT_BYTE: 1 << 2 };
-            var QRErrorCorrectionLevel = { L: 1, M: 0, Q: 3, H: 2 };
-            var QRMaskPattern = { P0: 0, P1: 1, P2: 2, P3: 3, P4: 4, P5: 5, P6: 6, P7: 7 };
 
-            // Centros dos padrões de alinhamento por versão (1 a 20)
-            var PATTERN_POSITION_TABLE = [
-                [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34],
-                [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50],
-                [6, 30, 54], [6, 32, 58], [6, 34, 62], [6, 26, 46, 66], [6, 26, 48, 70],
-                [6, 26, 50, 74], [6, 30, 54, 78], [6, 30, 56, 82], [6, 30, 58, 86], [6, 34, 62, 90]
-            ];
-            var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
-            var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
-            var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
 
-            function getBCHDigit(data) {
-                var digit = 0;
-                while (data !== 0) { digit += 1; data >>>= 1; }
-                return digit;
-            }
 
-            var QRUtil = {
-                getBCHTypeInfo: function (data) {
-                    var d = data << 10;
-                    while (getBCHDigit(d) - getBCHDigit(G15) >= 0) d ^= (G15 << (getBCHDigit(d) - getBCHDigit(G15)));
-                    return ((data << 10) | d) ^ G15_MASK;
-                },
-                getBCHTypeNumber: function (data) {
-                    var d = data << 12;
-                    while (getBCHDigit(d) - getBCHDigit(G18) >= 0) d ^= (G18 << (getBCHDigit(d) - getBCHDigit(G18)));
-                    return (data << 12) | d;
-                },
-                getPatternPosition: function (typeNumber) { return PATTERN_POSITION_TABLE[typeNumber - 1]; },
-                getMaskFunction: function (maskPattern) {
-                    switch (maskPattern) {
-                        case QRMaskPattern.P0: return function (i, j) { return (i + j) % 2 === 0; };
-                        case QRMaskPattern.P1: return function (i, j) { return i % 2 === 0; };
-                        case QRMaskPattern.P2: return function (i, j) { return j % 3 === 0; };
-                        case QRMaskPattern.P3: return function (i, j) { return (i + j) % 3 === 0; };
-                        case QRMaskPattern.P4: return function (i, j) { return (Math.floor(i / 2) + Math.floor(j / 3)) % 2 === 0; };
-                        case QRMaskPattern.P5: return function (i, j) { return (i * j) % 2 + (i * j) % 3 === 0; };
-                        case QRMaskPattern.P6: return function (i, j) { return ((i * j) % 2 + (i * j) % 3) % 2 === 0; };
-                        case QRMaskPattern.P7: return function (i, j) { return ((i * j) % 3 + (i + j) % 2) % 2 === 0; };
-                        default: throw new Error('maskPattern:' + maskPattern);
-                    }
-                },
-                getErrorCorrectPolynomial: function (errorCorrectLength) {
-                    var a = qrPolynomial([1], 0);
-                    for (var i = 0; i < errorCorrectLength; i += 1) a = a.multiply(qrPolynomial([1, QRMath.gexp(i)], 0));
-                    return a;
-                },
-                getLengthInBits: function (typeNumber) { return typeNumber < 10 ? 8 : 16; }, // modo Byte: 8 bits (v1–9) ou 16 bits (v10+)
-                getLostPoint: function (qrCode) {
-                    var moduleCount = qrCode.getModuleCount();
-                    var lostPoint = 0;
-                    for (var row = 0; row < moduleCount; row += 1) {
-                        for (var col = 0; col < moduleCount; col += 1) {
-                            var sameCount = 0;
-                            var dark = qrCode.isDark(row, col);
-                            for (var r = -1; r <= 1; r += 1) {
-                                if (row + r < 0 || moduleCount <= row + r) continue;
-                                for (var c = -1; c <= 1; c += 1) {
-                                    if (col + c < 0 || moduleCount <= col + c) continue;
-                                    if (r === 0 && c === 0) continue;
-                                    if (dark === qrCode.isDark(row + r, col + c)) sameCount += 1;
-                                }
-                            }
-                            if (sameCount > 5) lostPoint += (3 + sameCount - 5);
-                        }
-                    }
-                    for (var row2 = 0; row2 < moduleCount - 1; row2 += 1) {
-                        for (var col2 = 0; col2 < moduleCount - 1; col2 += 1) {
-                            var count = 0;
-                            if (qrCode.isDark(row2, col2)) count += 1;
-                            if (qrCode.isDark(row2 + 1, col2)) count += 1;
-                            if (qrCode.isDark(row2, col2 + 1)) count += 1;
-                            if (qrCode.isDark(row2 + 1, col2 + 1)) count += 1;
-                            if (count === 0 || count === 4) lostPoint += 3;
-                        }
-                    }
-                    for (var row3 = 0; row3 < moduleCount; row3 += 1) {
-                        for (var col3 = 0; col3 < moduleCount - 6; col3 += 1) {
-                            if (qrCode.isDark(row3, col3) && !qrCode.isDark(row3, col3 + 1) && qrCode.isDark(row3, col3 + 2) &&
-                                qrCode.isDark(row3, col3 + 3) && qrCode.isDark(row3, col3 + 4) && !qrCode.isDark(row3, col3 + 5) &&
-                                qrCode.isDark(row3, col3 + 6)) lostPoint += 40;
-                        }
-                    }
-                    for (var col4 = 0; col4 < moduleCount; col4 += 1) {
-                        for (var row4 = 0; row4 < moduleCount - 6; row4 += 1) {
-                            if (qrCode.isDark(row4, col4) && !qrCode.isDark(row4 + 1, col4) && qrCode.isDark(row4 + 2, col4) &&
-                                qrCode.isDark(row4 + 3, col4) && qrCode.isDark(row4 + 4, col4) && !qrCode.isDark(row4 + 5, col4) &&
-                                qrCode.isDark(row4 + 6, col4)) lostPoint += 40;
-                        }
-                    }
-                    var darkCount = 0;
-                    for (var c5 = 0; c5 < moduleCount; c5 += 1) for (var r5 = 0; r5 < moduleCount; r5 += 1) if (qrCode.isDark(r5, c5)) darkCount += 1;
-                    lostPoint += Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5 * 10;
-                    return lostPoint;
-                }
-            };
 
-            var QRMath = (function () {
-                var EXP_TABLE = new Array(256), LOG_TABLE = new Array(256);
-                for (var i = 0; i < 8; i += 1) EXP_TABLE[i] = 1 << i;
-                for (var j = 8; j < 256; j += 1) EXP_TABLE[j] = EXP_TABLE[j - 4] ^ EXP_TABLE[j - 5] ^ EXP_TABLE[j - 6] ^ EXP_TABLE[j - 8];
-                for (var k = 0; k < 255; k += 1) LOG_TABLE[EXP_TABLE[k]] = k;
-                return {
-                    glog: function (n) { if (n < 1) throw new Error('glog(' + n + ')'); return LOG_TABLE[n]; },
-                    gexp: function (n) { while (n < 0) n += 255; while (n >= 256) n -= 255; return EXP_TABLE[n]; }
-                };
-            })();
 
-            function qrPolynomial(num, shift) {
-                var offset = 0;
-                while (offset < num.length && num[offset] === 0) offset += 1;
-                var _num = new Array(num.length - offset + shift);
-                for (var i = 0; i < num.length - offset; i += 1) _num[i] = num[i + offset];
-                return {
-                    getAt: function (index) { return _num[index]; },
-                    getLength: function () { return _num.length; },
-                    multiply: function (e) {
-                        var self = this;
-                        var out = new Array(self.getLength() + e.getLength() - 1);
-                        for (var i = 0; i < out.length; i += 1) out[i] = 0;
-                        for (var i2 = 0; i2 < self.getLength(); i2 += 1) {
-                            for (var j2 = 0; j2 < e.getLength(); j2 += 1) {
-                                out[i2 + j2] ^= QRMath.gexp(QRMath.glog(self.getAt(i2)) + QRMath.glog(e.getAt(j2)));
-                            }
-                        }
-                        return qrPolynomial(out, 0);
-                    },
-                    mod: function (e) {
-                        var self = this;
-                        if (self.getLength() - e.getLength() < 0) return self;
-                        var ratio = QRMath.glog(self.getAt(0)) - QRMath.glog(e.getAt(0));
-                        var num2 = new Array(self.getLength());
-                        for (var i = 0; i < self.getLength(); i += 1) num2[i] = self.getAt(i);
-                        for (var i2 = 0; i2 < e.getLength(); i2 += 1) num2[i2] ^= QRMath.gexp(QRMath.glog(e.getAt(i2)) + ratio);
-                        return qrPolynomial(num2, 0).mod(e);
-                    }
-                };
-            }
 
-            // Blocos Reed-Solomon [contagem, total, dados] por versão (1–20), nível L.
-            // Estes números vêm do padrão ISO/IEC 18004 e NÃO devem ser editados à mão:
-            // um erro aqui gera um QR de aparência perfeita que nenhum leitor consegue
-            // ler. Foram conferidos decodificando os QR gerados com um leitor externo.
-            var RS_BLOCK_TABLE_L = [
-                [1, 26, 19], [1, 44, 34], [1, 70, 55], [1, 100, 80], [1, 134, 108],
-                [2, 86, 68], [2, 98, 78], [2, 121, 97], [2, 146, 116], [2, 86, 68, 2, 87, 69],
-                [4, 101, 81], [2, 116, 92, 2, 117, 93], [4, 133, 107], [3, 145, 115, 1, 146, 116],
-                [5, 109, 87, 1, 110, 88], [5, 122, 98, 1, 123, 99], [1, 135, 107, 5, 136, 108],
-                [5, 150, 120, 1, 151, 121], [3, 141, 113, 4, 142, 114], [3, 135, 107, 5, 136, 108]
-            ];
 
-            function getRSBlocks(typeNumber) {
-                var rsBlock = RS_BLOCK_TABLE_L[typeNumber - 1];
-                var length = rsBlock.length / 3;
-                var list = [];
-                for (var i = 0; i < length; i += 1) {
-                    var count = rsBlock[i * 3 + 0], totalCount = rsBlock[i * 3 + 1], dataCount = rsBlock[i * 3 + 2];
-                    for (var j = 0; j < count; j += 1) list.push({ totalCount: totalCount, dataCount: dataCount });
-                }
-                return list;
-            }
 
-            function qrBitBuffer() {
-                var _buffer = [], _length = 0;
-                return {
-                    getBuffer: function () { return _buffer; },
-                    getLengthInBits: function () { return _length; },
-                    put: function (num, length) {
-                        for (var i = 0; i < length; i += 1) this.putBit(((num >>> (length - i - 1)) & 1) === 1);
-                    },
-                    putBit: function (bit) {
-                        var bufIndex = Math.floor(_length / 8);
-                        if (_buffer.length <= bufIndex) _buffer.push(0);
-                        if (bit) _buffer[bufIndex] |= (0x80 >>> (_length % 8));
-                        _length += 1;
-                    }
-                };
-            }
 
-            function qr8BitByte(data) {
-                var bytes = [];
-                var utf8 = unescape(encodeURIComponent(data));
-                for (var i = 0; i < utf8.length; i += 1) bytes.push(utf8.charCodeAt(i) & 0xff);
-                return {
-                    getLength: function () { return bytes.length; },
-                    write: function (buffer) { for (var i = 0; i < bytes.length; i += 1) buffer.put(bytes[i], 8); }
-                };
-            }
 
-            function qrcodeFactory(typeNumber, errorCorrectionLevel) {
-                var PAD0 = 0xEC, PAD1 = 0x11;
-                var _typeNumber = typeNumber;
-                var _moduleCount = 0;
-                var _modules = null;
-                var _dataList = [];
-                var _dataCache = null;
-                var _this = {};
 
-                function setupPositionProbePattern(row, col) {
-                    for (var r = -1; r <= 7; r += 1) {
-                        if (row + r <= -1 || _moduleCount <= row + r) continue;
-                        for (var c = -1; c <= 7; c += 1) {
-                            if (col + c <= -1 || _moduleCount <= col + c) continue;
-                            if ((0 <= r && r <= 6 && (c === 0 || c === 6)) || (0 <= c && c <= 6 && (r === 0 || r === 6)) || (2 <= r && r <= 4 && 2 <= c && c <= 4)) {
-                                _modules[row + r][col + c] = true;
-                            } else {
-                                _modules[row + r][col + c] = false;
-                            }
-                        }
-                    }
-                }
 
-                function setupTimingPattern() {
-                    for (var r = 8; r < _moduleCount - 8; r += 1) { if (_modules[r][6] == null) _modules[r][6] = (r % 2 === 0); }
-                    for (var c = 8; c < _moduleCount - 8; c += 1) { if (_modules[6][c] == null) _modules[6][c] = (c % 2 === 0); }
-                }
-
-                function setupPositionAdjustPattern() {
-                    var pos = QRUtil.getPatternPosition(_typeNumber);
-                    for (var i = 0; i < pos.length; i += 1) {
-                        for (var j = 0; j < pos.length; j += 1) {
-                            var row = pos[i], col = pos[j];
-                            if (_modules[row][col] != null) continue;
-                            for (var r = -2; r <= 2; r += 1) {
-                                for (var c = -2; c <= 2; c += 1) {
-                                    _modules[row + r][col + c] = (r === -2 || r === 2 || c === -2 || c === 2 || (r === 0 && c === 0));
-                                }
-                            }
-                        }
-                    }
-                }
-
-                function setupTypeNumber(test) {
-                    var bits = QRUtil.getBCHTypeNumber(_typeNumber);
-                    for (var i = 0; i < 18; i += 1) {
-                        var mod = (!test && ((bits >> i) & 1) === 1);
-                        _modules[Math.floor(i / 3)][i % 3 + _moduleCount - 8 - 3] = mod;
-                    }
-                    for (var i2 = 0; i2 < 18; i2 += 1) {
-                        var mod2 = (!test && ((bits >> i2) & 1) === 1);
-                        _modules[i2 % 3 + _moduleCount - 8 - 3][Math.floor(i2 / 3)] = mod2;
-                    }
-                }
-
-                function setupTypeInfo(test, maskPattern) {
-                    var data = (QRErrorCorrectionLevel.L << 3) | maskPattern;
-                    var bits = QRUtil.getBCHTypeInfo(data);
-                    for (var i = 0; i < 15; i += 1) {
-                        var mod = (!test && ((bits >> i) & 1) === 1);
-                        if (i < 6) _modules[i][8] = mod;
-                        else if (i < 8) _modules[i + 1][8] = mod;
-                        else _modules[_moduleCount - 15 + i][8] = mod;
-                    }
-                    for (var i2 = 0; i2 < 15; i2 += 1) {
-                        var mod2 = (!test && ((bits >> i2) & 1) === 1);
-                        if (i2 < 8) _modules[8][_moduleCount - i2 - 1] = mod2;
-                        else if (i2 < 9) _modules[8][15 - i2 - 1 + 1] = mod2;
-                        else _modules[8][15 - i2 - 1] = mod2;
-                    }
-                    _modules[_moduleCount - 8][8] = !test;
-                }
-
-                function mapData(data, maskPattern) {
-                    var inc = -1, row = _moduleCount - 1, bitIndex = 7, byteIndex = 0;
-                    var maskFunc = QRUtil.getMaskFunction(maskPattern);
-                    for (var col = _moduleCount - 1; col > 0; col -= 2) {
-                        if (col === 6) col -= 1;
-                        while (true) {
-                            for (var c = 0; c < 2; c += 1) {
-                                if (_modules[row][col - c] == null) {
-                                    var dark = false;
-                                    if (byteIndex < data.length) dark = (((data[byteIndex] >>> bitIndex) & 1) === 1);
-                                    if (maskFunc(row, col - c)) dark = !dark;
-                                    _modules[row][col - c] = dark;
-                                    bitIndex -= 1;
-                                    if (bitIndex === -1) { byteIndex += 1; bitIndex = 7; }
-                                }
-                            }
-                            row += inc;
-                            if (row < 0 || _moduleCount <= row) { row -= inc; inc = -inc; break; }
-                        }
-                    }
-                }
-
-                function createBytes(buffer, rsBlocks) {
-                    var offset = 0, maxDcCount = 0, maxEcCount = 0;
-                    var dcdata = new Array(rsBlocks.length), ecdata = new Array(rsBlocks.length);
-                    for (var r = 0; r < rsBlocks.length; r += 1) {
-                        var dcCount = rsBlocks[r].dataCount, ecCount = rsBlocks[r].totalCount - dcCount;
-                        maxDcCount = Math.max(maxDcCount, dcCount);
-                        maxEcCount = Math.max(maxEcCount, ecCount);
-                        dcdata[r] = new Array(dcCount);
-                        for (var i = 0; i < dcdata[r].length; i += 1) dcdata[r][i] = 0xff & buffer.getBuffer()[i + offset];
-                        offset += dcCount;
-                        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
-                        var rawPoly = qrPolynomial(dcdata[r], rsPoly.getLength() - 1);
-                        var modPoly = rawPoly.mod(rsPoly);
-                        ecdata[r] = new Array(rsPoly.getLength() - 1);
-                        for (var i2 = 0; i2 < ecdata[r].length; i2 += 1) {
-                            var modIndex = i2 + modPoly.getLength() - ecdata[r].length;
-                            ecdata[r][i2] = (modIndex >= 0) ? modPoly.getAt(modIndex) : 0;
-                        }
-                    }
-                    var totalCodeCount = 0;
-                    for (var t = 0; t < rsBlocks.length; t += 1) totalCodeCount += rsBlocks[t].totalCount;
-                    var out = new Array(totalCodeCount), index = 0;
-                    for (var i3 = 0; i3 < maxDcCount; i3 += 1) for (var r2 = 0; r2 < rsBlocks.length; r2 += 1) if (i3 < dcdata[r2].length) out[index++] = dcdata[r2][i3];
-                    for (var i4 = 0; i4 < maxEcCount; i4 += 1) for (var r3 = 0; r3 < rsBlocks.length; r3 += 1) if (i4 < ecdata[r3].length) out[index++] = ecdata[r3][i4];
-                    return out;
-                }
-
-                function createData(typeNumber, dataList) {
-                    var rsBlocks = getRSBlocks(typeNumber);
-                    var buffer = qrBitBuffer();
-                    for (var i = 0; i < dataList.length; i += 1) {
-                        var data = dataList[i];
-                        buffer.put(QRMode.MODE_8BIT_BYTE, 4);
-                        buffer.put(data.getLength(), QRUtil.getLengthInBits(typeNumber));
-                        data.write(buffer);
-                    }
-                    var totalDataCount = 0;
-                    for (var j = 0; j < rsBlocks.length; j += 1) totalDataCount += rsBlocks[j].dataCount;
-                    if (buffer.getLengthInBits() > totalDataCount * 8) throw new Error('code length overflow');
-                    if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) buffer.put(0, 4);
-                    while (buffer.getLengthInBits() % 8 !== 0) buffer.putBit(false);
-                    while (true) {
-                        if (buffer.getLengthInBits() >= totalDataCount * 8) break;
-                        buffer.put(PAD0, 8);
-                        if (buffer.getLengthInBits() >= totalDataCount * 8) break;
-                        buffer.put(PAD1, 8);
-                    }
-                    return createBytes(buffer, rsBlocks);
-                }
-
-                function makeImpl(test, maskPattern) {
-                    _moduleCount = _typeNumber * 4 + 17;
-                    _modules = [];
-                    for (var row = 0; row < _moduleCount; row += 1) {
-                        _modules[row] = [];
-                        for (var col = 0; col < _moduleCount; col += 1) _modules[row][col] = null;
-                    }
-                    setupPositionProbePattern(0, 0);
-                    setupPositionProbePattern(_moduleCount - 7, 0);
-                    setupPositionProbePattern(0, _moduleCount - 7);
-                    setupPositionAdjustPattern();
-                    setupTimingPattern();
-                    setupTypeInfo(test, maskPattern);
-                    if (_typeNumber >= 7) setupTypeNumber(test);
-                    if (_dataCache == null) _dataCache = createData(_typeNumber, _dataList);
-                    mapData(_dataCache, maskPattern);
-                }
-
-                function getBestMaskPattern() {
-                    var minLostPoint = 0, pattern = 0;
-                    for (var i = 0; i < 8; i += 1) {
-                        makeImpl(true, i);
-                        var lostPoint = QRUtil.getLostPoint(_this);
-                        if (i === 0 || minLostPoint > lostPoint) { minLostPoint = lostPoint; pattern = i; }
-                    }
-                    return pattern;
-                }
-
-                _this.addData = function (data) { _dataList.push(qr8BitByte(data)); _dataCache = null; };
-                _this.isDark = function (row, col) { return _modules[row][col]; };
-                _this.getModuleCount = function () { return _moduleCount; };
-                _this.make = function () { makeImpl(false, getBestMaskPattern()); };
-
-                return _this;
-            }
-
-            return function (typeNumber) { return qrcodeFactory(typeNumber, 'L'); };
-        })();
-
-        // Codifica/decodifica receitas customizadas para compartilhamento via link + QR code
-        function toBase64Url(str) {
-            const bytes = new TextEncoder().encode(str);
-            let binary = '';
-            for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
-            return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        }
-
-        function fromBase64Url(param) {
-            let b64 = param.replace(/-/g, '+').replace(/_/g, '/');
-            while (b64.length % 4) b64 += '=';
-            const binary = atob(b64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-            return new TextDecoder().decode(bytes);
-        }
-
-        function simpleHash(str) {
-            let hash = 0;
-            for (let i = 0; i < str.length; i += 1) hash = (hash * 31 + str.charCodeAt(i)) | 0;
-            return Math.abs(hash).toString(36);
-        }
-
-        function buildRecipeShareUrl(data) {
-            const compact = {
-                n: data.name,
-                dv: data.device,
-                rc: data.refCoffee,
-                rw: data.refWater,
-                ck: data.clicksDefault,
-                tc: data.tempC,
-                // Gramas absolutos, não percentual: arredondar o percentual para 3 casas
-                // fazia 50g em 320ml virar 62,4g (e não 62,5g) ao reescalar para 400ml
-                st: data.steps.map(s => [parseTimeToSeconds(s.time), temMeta(s.amount) ? s.amount : null, s.desc])
-            };
-            const param = toBase64Url(JSON.stringify(compact));
-            const base = location.href.split('#')[0];
-            return { url: `${base}#r=${param}`, param };
-        }
-
-        // Limites de sanidade para dados que chegam de um link — o conteúdo é controlado
-        // por quem gerou o QR, então nada aqui pode ser assumido como confiável
-        const LIMITES_IMPORT = { nome: 60, passos: 20, desc: 60 };
-
-        function numeroValido(v, min, max) {
-            return typeof v === 'number' && isFinite(v) && v >= min && v <= max;
-        }
-
-        function textoValido(v, maxLen) {
-            return typeof v === 'string' && v.trim().length > 0 && v.length <= maxLen;
-        }
-
-        function decodeRecipeFromParam(param) {
-            const compact = JSON.parse(fromBase64Url(param));
-            const invalido = msg => { throw new Error(msg); };
-
-            if (!textoValido(compact.n, LIMITES_IMPORT.nome)) invalido('nome de receita inválido');
-            if (typeof compact.dv !== 'string') invalido('aparelho inválido');
-            if (!Array.isArray(compact.st) || compact.st.length === 0 || compact.st.length > LIMITES_IMPORT.passos) {
-                invalido('lista de passos inválida');
-            }
-            if (!numeroValido(compact.rc, 0.1, 1000)) invalido('café de referência inválido');
-            if (!numeroValido(compact.rw, 1, 10000)) invalido('água de referência inválida');
-            if (!numeroValido(compact.ck, 1, 100)) invalido('cliques inválidos');
-            if (!numeroValido(compact.tc, 1, 100)) invalido('temperatura inválida');
-
-            const steps = compact.st.map(passo => {
-                if (!Array.isArray(passo) || passo.length !== 3) invalido('passo malformado');
-                const [sec, amount, desc] = passo;
-                if (!numeroValido(sec, 0, 3600)) invalido('tempo de passo inválido');
-                // null = passo só de instrução, sem despejo
-                if (amount !== null && !numeroValido(amount, 0, 10000)) invalido('quantidade de passo inválida');
-                if (!textoValido(desc, LIMITES_IMPORT.desc)) invalido('descrição de passo inválida');
-                return { time: formatTime(Math.round(sec)), amount, desc };
-            });
-
-            return {
-                id: `custom-${simpleHash(param)}`,
-                device: compact.dv,
-                name: compact.n,
-                refCoffee: compact.rc,
-                refWater: compact.rw,
-                clicksDefault: compact.ck,
-                tempC: compact.tc,
-                steps
-            };
-        }
-
-        function generateRecipeQR(url) {
-            for (let typeNumber = 1; typeNumber <= 20; typeNumber += 1) {
-                try {
-                    const qr = qrcode(typeNumber);
-                    qr.addData(url);
-                    qr.make();
-                    return qr;
-                } catch (e) { /* não coube nessa versão — tenta a próxima */ }
-            }
-            return null; // acima de ~690 bytes (versão 20, nível L) não há mais para onde crescer
-        }
-
-        function roundRectPath(ctx, x, y, w, h, r) {
-            ctx.beginPath();
-            ctx.moveTo(x + r, y);
-            ctx.arcTo(x + w, y, x + w, y + h, r);
-            ctx.arcTo(x + w, y + h, x, y + h, r);
-            ctx.arcTo(x, y + h, x, y, r);
-            ctx.arcTo(x, y, x + w, y, r);
-            ctx.closePath();
-        }
-
-        const QR_QUIET_MODULES = 4;
-
-        // Lado em pixels que o QR vai realmente ocupar: sempre um múltiplo inteiro do
-        // número de módulos. Com módulo fracionário, arredondar cada quadradinho deforma
-        // a grade e nenhum leitor consegue ler o código.
-        function qrDrawSize(qrObj, maxSize) {
-            const total = qrObj.getModuleCount() + QR_QUIET_MODULES * 2;
-            return Math.max(1, Math.floor(maxSize / total)) * total;
-        }
-
-        function drawQRCodeOnCanvas(ctx, qrObj, x, y, size) {
-            const count = qrObj.getModuleCount();
-            const moduleSize = size / (count + QR_QUIET_MODULES * 2);
-            // Cartão claro com cantos arredondados; a zona silenciosa continua
-            // quadrada por dentro, então o arredondamento não atrapalha a leitura
-            ctx.fillStyle = '#fdfaf5';
-            roundRectPath(ctx, x, y, size, size, 18);
-            ctx.fill();
-            ctx.fillStyle = '#1b1410';
-            for (let row = 0; row < count; row += 1) {
-                for (let col = 0; col < count; col += 1) {
-                    if (qrObj.isDark(row, col)) {
-                        ctx.fillRect(
-                            x + (QR_QUIET_MODULES + col) * moduleSize,
-                            y + (QR_QUIET_MODULES + row) * moduleSize,
-                            moduleSize, moduleSize
-                        );
-                    }
-                }
-            }
-        }
 
         function onReviewClicksInput() {
             const val = document.getElementById('review-clicks').value;
@@ -981,257 +430,10 @@
             onReviewClicksInput();
         }
 
-        // ---------- Motor de receitas ----------
-        // Cada passo é declarado como DADO, não como texto pronto:
-        //   { time, label, to, hint }  -> despejo, onde `to(coffee, water)` é o ALVO ACUMULADO em gramas
-        //   { time, desc }             -> instrução sem despejo (mexer, aguardar, prensar)
-        //
-        // O arredondamento acontece num lugar só (renderRecipeSteps): os alvos acumulados
-        // são arredondados e cada despejo é a DIFERENÇA entre alvos consecutivos já
-        // arredondados. Assim a soma dos despejos fecha exatamente no alvo final, por
-        // construção — antes, arredondar cada despejo e cada alvo em separado fazia com
-        // que 250ml em 4 despejos mandasse despejar 252g.
-        const alvo = fn => (typeof fn === 'function' ? fn : () => fn);
-        const fracaoDaAgua = f => (c, w) => w * f;
 
-        function renderRecipeSteps(descriptors, coffee, water) {
-            let anterior = 0;
-            return descriptors.map(d => {
-                if (d.to === undefined) return { time: d.time, desc: d.desc };
-                const target = Math.round(alvo(d.to)(coffee, water));
-                const pour = Math.max(0, target - anterior);
-                anterior = target;
-                const hint = d.hint ? ` ${d.hint}` : '';
-                return {
-                    time: d.time,
-                    desc: `<b>${d.label}:</b> despeje <b>${pour}g</b> — alvo <b>${target}g</b> na balança.${hint}`,
-                    pour, target
-                };
-            });
-        }
 
-        // Percentuais dos dois primeiros despejos do 4:6 por posição do controle de balanço
-        const KASUYA_BALANCE = {
-            1: [0.12, 0.28], 2: [0.16, 0.24], 3: [0.20, 0.20], 4: [0.24, 0.16], 5: [0.28, 0.12]
-        };
 
-        // As proporções (`ratio`) são sempre a razão exata água:café da dose de referência
-        // do autor — nunca um valor arredondado. `refDose` guarda essa dose original para
-        // exibição, e `source` aponta a publicação que sustenta cada receita.
-        const deviceData = {
-            v60: {
-                label: 'V60',
-                recipes: {
-                    hoffmann: {
-                        label: 'James Hoffmann',
-                        ratio: 500 / 30,
-                        refDose: { coffee: 30, water: 500 },
-                        tempBase: 95,
-                        clicksByRoast: { light: 17, medium: 18, dark: 19 },
-                        clicksEstimated: true,
-                        source: 'https://www.youtube.com/watch?v=AI4ynXzkSQo',
-                        note: 'Receita "Ultimate V60" de James Hoffmann, Campeão Mundial de Barista 2007. Bloom de 2x o peso do café, depois dois despejos até 60% e 100% da água.',
-                        hasKasuyaControls: false,
-                        buildSteps: () => [
-                            { time: '0:00', label: 'Bloom', to: c => c * 2, hint: 'Balance o V60 suavemente para molhar todo o pó.' },
-                            { time: '0:45', label: '1º Despejo', to: (c, w) => w * 0.6, hint: 'Despeje em círculos.' },
-                            { time: '1:15', label: '2º Despejo', to: (c, w) => w, hint: 'Despeje lentamente.' },
-                            { time: '1:45', desc: 'Dê uma leve mexida com uma colher (1x cada lado) e balance o V60 para planificar a cama de café.' },
-                            { time: '3:30', desc: 'Tempo estimado para drenagem total.' }
-                        ]
-                    },
-                    kasuya: {
-                        label: 'Tetsu Kasuya 4:6 — Campeão Mundial 2016',
-                        ratio: 15,
-                        refDose: { coffee: 20, water: 300 },
-                        tempByRoast: { light: 93, medium: 88, dark: 83 },
-                        clicksByRoast: { light: 20, medium: 21, dark: 22 },
-                        clicksEstimated: true,
-                        source: 'https://www.timer.coffee/recipes/v60/tetsu-kasuya-4-6-method/',
-                        note: 'Método 4:6 de Tetsu Kasuya, Campeão Mundial de Brewers Cup 2016. Os dois primeiros despejos (40% da água) ajustam doçura/acidez; o restante (60%) ajusta a força.',
-                        hasKasuyaControls: true,
-                        buildSteps(coffee, water, balVal, strVal) {
-                            const [f1, f2] = KASUYA_BALANCE[balVal] || KASUYA_BALANCE[3];
-                            const n = strVal;
-                            const steps = [];
-                            let frac = 0;
-                            let t = 0;
 
-                            frac += f1;
-                            steps.push({ time: formatTime(t), label: 'Bloom', to: fracaoDaAgua(frac) });
-                            t += 45;
-
-                            frac += f2;
-                            steps.push({ time: formatTime(t), label: '2º Despejo', to: fracaoDaAgua(frac) });
-                            t += 45;
-
-                            for (let i = 0; i < n; i++) {
-                                frac += 0.60 / n;
-                                steps.push({ time: formatTime(t), label: `Despejo ${i + 3}`, to: fracaoDaAgua(frac) });
-                                t += 45;
-                            }
-
-                            steps.push({ time: formatTime(t), desc: 'Fim da extração. Remova o filtro.' });
-                            return steps;
-                        }
-                    }
-                }
-            },
-            chemex: {
-                label: 'Chemex',
-                recipes: {
-                    hoffmann: {
-                        label: 'James Hoffmann',
-                        ratio: 500 / 30,
-                        refDose: { coffee: 30, water: 500 },
-                        tempBase: 95,
-                        // Mesmos cliques do V60: a fonte descreve a moagem do Chemex como
-                        // média-fina e a técnica como praticamente a mesma do V60
-                        clicksByRoast: { light: 17, medium: 18, dark: 19 },
-                        clicksEstimated: true,
-                        source: 'https://www.timer.coffee/recipes/chemex/james-hoffmann-chemex-recipe/',
-                        note: 'Adaptação de James Hoffmann do método V60 para o Chemex — bloom de 2x o café, despejos até 60% e 100%, com uma sacudida extra ao final.',
-                        hasKasuyaControls: false,
-                        buildSteps: () => [
-                            { time: '0:00', label: 'Bloom', to: c => c * 2, hint: 'Sature todo o pó.' },
-                            { time: '0:10', desc: 'Mexa gentilmente e deixe florescer.' },
-                            { time: '0:45', label: '1º Despejo', to: (c, w) => w * 0.6, hint: 'Em círculos, quebrando grumos.' },
-                            { time: '1:15', label: '2º Despejo', to: (c, w) => w },
-                            { time: '1:45', desc: 'Mexa 1x no sentido horário e 1x no anti-horário com uma colher.' },
-                            { time: '2:00', desc: 'Dê uma leve sacudida no Chemex para nivelar a cama de café.' },
-                            { time: '2:10', desc: 'Aguarde o gotejamento total (tempo estimado: ~4:10).' }
-                        ]
-                    }
-                }
-            },
-            kalita: {
-                label: 'Kalita Wave',
-                recipes: {
-                    mccarthy: {
-                        label: 'Erin McCarthy — Campeonato Mundial 2013',
-                        ratio: 380 / 24,
-                        refDose: { coffee: 24, water: 380 },
-                        tempBase: 96,
-                        clicksByRoast: { light: 18, medium: 19, dark: 20 },
-                        clicksEstimated: true,
-                        source: 'https://sprudge.com/erin-mccarthy-brewers-cup-cham-36235.html',
-                        note: 'Receita de Erin McCarthy (Counter Culture), vencedora do Campeonato Mundial de Brewers Cup 2013 com o Kalita Wave. 24g para 380ml, moagem média-grossa com os finos peneirados, bloom de 45s e despejos pulsados mantendo uma coluna de água constante. O filtro Wave não é enxaguado.',
-                        hasKasuyaControls: false,
-                        buildSteps: () => [
-                            { time: '0:00', label: 'Pré-molha', to: c => c * 2, hint: 'Chaleira comum, com a água quase fervente.' },
-                            { time: '0:15', desc: 'Deixe florescer.' },
-                            { time: '0:45', label: 'Despejo pulsado', to: (c, w) => w * 0.5, hint: 'Mantenha uma coluna de água constante sobre o pó.' },
-                            // A troca de chaleira acontece durante a extração e muda a agitação
-                            // da cama de café, então entra como passo; já o filtro sem enxaguar
-                            // e a moagem são preparo prévio e ficam na nota da receita.
-                            { time: '1:15', label: 'Despejo pulsado', to: (c, w) => w, hint: 'Troque para uma chaleira de fluxo restrito, para amortecer a agitação.' },
-                            { time: '1:45', desc: 'Aguarde o gotejamento completo (tempo estimado: ~3:30).' }
-                        ]
-                    }
-                }
-            },
-            origami: {
-                label: 'Origami',
-                recipes: {
-                    jianingdu: {
-                        label: 'Du Jianing — Campeã Mundial 2019',
-                        ratio: 240 / 16,
-                        refDose: { coffee: 16, water: 240 },
-                        tempBase: 94,
-                        clicksByRoast: { light: 18, medium: 19, dark: 20 },
-                        clicksEstimated: true,
-                        source: 'https://sprudge.com/du-jianing-of-china-is-the-2019-world-brewers-cup-champion-142739.html',
-                        note: 'Receita vencedora de Du Jianing, Campeã Mundial de Brewers Cup 2019 — primeira competidora da China a vencer um Campeonato Mundial de Café. 16g para 240ml a 94°C no Origami, extração de ~1:40. Na competição ela moía o café duas vezes, peneirando a casca entre as moagens.',
-                        hasKasuyaControls: false,
-                        buildSteps: () => [
-                            { time: '0:00', label: '1º Despejo', to: (c, w) => w * 0.25 },
-                            { time: '0:10', desc: 'Aguarde.' },
-                            { time: '0:18', label: '2º Despejo', to: (c, w) => w * 0.5833 },
-                            { time: '0:38', desc: 'Aguarde.' },
-                            { time: '0:56', label: '3º Despejo', to: (c, w) => w },
-                            { time: '1:16', desc: 'Aguarde o gotejamento total (tempo estimado: ~1:46).' }
-                        ]
-                    }
-                }
-            },
-            frenchpress: {
-                label: 'Prensa Francesa',
-                recipes: {
-                    hoffmann: {
-                        label: 'James Hoffmann',
-                        ratio: 500 / 30,
-                        refDose: { coffee: 30, water: 500 },
-                        tempBase: 95,
-                        clicksByRoast: { light: 27, medium: 28, dark: 29 },
-                        clicksEstimated: true,
-                        source: 'https://www.youtube.com/watch?v=st571DYYTR8',
-                        note: 'Técnica "Ultimate French Press" de James Hoffmann: um longo descanso antes de prensar reduz sedimentos e deixa a xícara mais limpa.',
-                        hasKasuyaControls: false,
-                        buildSteps: () => [
-                            { time: '0:00', label: 'Despejo único', to: (c, w) => w, hint: 'De uma vez, cobrindo todo o pó.' },
-                            { time: '0:15', desc: 'Deixe descansar sem mexer.' },
-                            { time: '4:15', desc: 'Mexa a crosta que se formou no topo e remova a espuma/partículas flutuantes com uma colher.' },
-                            { time: '4:45', desc: 'Deixe descansar por mais 5 minutos, sem mexer, para as partículas assentarem.' },
-                            { time: '9:45', desc: 'Encaixe o êmbolo só até a superfície do líquido, sem pressionar, e sirva devagar.' }
-                        ]
-                    }
-                }
-            },
-            aeropress: {
-                label: 'AeroPress',
-                recipes: {
-                    hoffmann: {
-                        label: 'James Hoffmann',
-                        ratio: 200 / 11,
-                        refDose: { coffee: 11, water: 200 },
-                        // A fonte manda usar água fervente na torra clara e 90–95°C na média.
-                        // 97°C é meio-termo: reconhece que a clara pede mais quente sem cravar
-                        // um número que o autor não deu.
-                        tempByRoast: { light: 97, medium: [90, 95], dark: [85, 90] },
-                        clicksByRoast: { light: 14, medium: 15, dark: 16 },
-                        clicksEstimated: true,
-                        source: 'https://aeroprecipe.com/recipes/james-hoffmann-aeropress-recipe',
-                        note: 'Receita padrão de James Hoffmann para AeroPress na posição tradicional (não invertida).',
-                        hasKasuyaControls: false,
-                        buildSteps: () => [
-                            { time: '0:00', label: 'Despejo único', to: (c, w) => w, hint: 'Molhe todo o café.' },
-                            { time: '0:10', desc: 'Encaixe o êmbolo cerca de 1cm no topo do bocal.' },
-                            { time: '0:15', desc: 'Aguarde 2 minutos.' },
-                            { time: '2:15', desc: 'Segurando o corpo e o êmbolo, gire suavemente o AeroPress.' },
-                            { time: '2:25', desc: 'Aguarde 30 segundos.' },
-                            { time: '2:55', desc: 'Pressione suavemente até o final (tempo estimado: ~3:25).' }
-                        ]
-                    },
-                    merikanto: {
-                        label: 'Tuomas Merikanto — Campeão Mundial 2021',
-                        ratio: 200 / 18,
-                        refDose: { coffee: 18, water: 200 },
-                        tempBase: 80,
-                        clicksByRoast: { light: 12, medium: 13, dark: 14 },
-                        clicksEstimated: true,
-                        source: 'https://aeroprecipe.com/recipes/2021-world-aeropress-champion',
-                        note: 'Receita vencedora do Campeonato Mundial de AeroPress 2021, de Tuomas Merikanto (Finlândia). AeroPress invertido com dois filtros de papel, 18g para 200ml a 80°C.',
-                        hasKasuyaControls: false,
-                        buildSteps: () => [
-                            { time: '0:00', label: 'Bloom', to: (c, w) => w * 0.25, hint: 'AeroPress invertido, com dois filtros de papel na tampa.' },
-                            { time: '0:10', desc: 'Mexa bem suavemente, 3 vezes (ida e volta).' },
-                            { time: '0:15', label: 'Despejo final', to: (c, w) => w },
-                            { time: '0:30', desc: 'Deixe extrair sem mexer.' },
-                            { time: '0:50', desc: 'Mexa bem suavemente mais 3 vezes.' },
-                            { time: '1:00', desc: 'Retire o excesso de ar e encaixe a tampa com os filtros.' },
-                            { time: '1:35', desc: 'Encaixe o recipiente sobre o AeroPress.' },
-                            { time: '1:40', desc: 'Vire para a posição normal e pressione imediatamente, até 2:00.' }
-                        ]
-                    }
-                }
-            }
-        };
-
-        function formatTime(totalSeconds) {
-            const m = Math.floor(totalSeconds / 60);
-            const s = totalSeconds % 60;
-            return `${m}:${s.toString().padStart(2, '0')}`;
-        }
 
         function clearRecipe() {
             document.getElementById('recipe-container').classList.add('hidden');
@@ -1257,47 +459,8 @@
             } catch (e) { /* localStorage indisponível — ignora silenciosamente */ }
         }
 
-        function buildCustomRecipeObject(data) {
-            const ratio = data.refWater / data.refCoffee;
-            return {
-                label: data.name,
-                ratio: ratio,
-                refDose: { coffee: data.refCoffee, water: data.refWater },
-                clicksDefault: data.clicksDefault,
-                tempBase: data.tempC,
-                note: 'Receita criada por você.',
-                hasKasuyaControls: false,
-                isCustom: true,
-                customId: data.id,
-                // O texto do passo vem do usuário (ou de um link importado), então é
-                // escapado antes de entrar no HTML montado por renderRecipeSteps.
-                // Passo sem meta em gramas vira instrução pura (ex: "aguarde a drenagem"),
-                // sem despejo nem alvo.
-                buildSteps: () => data.steps.map(s => (
-                    temMeta(s.amount)
-                        ? { time: s.time, label: escapeHtml(s.desc), to: fracaoDaAgua(s.amount / data.refWater) }
-                        : { time: s.time, desc: escapeHtml(s.desc) }
-                ))
-            };
-        }
 
-        // A meta em gramas é opcional: um passo sem ela é só uma instrução no tempo certo
-        function temMeta(amount) {
-            return typeof amount === 'number' && isFinite(amount) && amount > 0;
-        }
 
-        // Passos passaram a guardar a quantidade absoluta em gramas (exata) em vez de um
-        // percentual arredondado. Converte o formato antigo já salvo no localStorage,
-        // preservando os passos sem meta (que valiam pct: null).
-        function normalizeCustomRecipe(data) {
-            if (!data || !Array.isArray(data.steps)) return data;
-            data.steps = data.steps.map(s => {
-                if (s.amount !== undefined) return s;
-                const convertido = temMeta(s.pct) ? s.pct * data.refWater : null;
-                return { time: s.time, amount: convertido, desc: s.desc };
-            });
-            return data;
-        }
 
         function addCustomStepRow(time, amount, desc) {
             const list = document.getElementById('custom-steps-list');
@@ -1562,22 +725,7 @@
             return (!isNaN(val) && val > 0) ? val : recipe.ratio;
         }
 
-        // Uma casa decimal, sem ".0" pendurado em proporções redondas
-        function formatRatio(ratio) {
-            return (Math.round(ratio * 10) / 10).toString();
-        }
 
-        // Limita um valor ao min/max declarados no próprio input. Os atributos min/max
-        // de input[type=number] não impedem valores fora da faixa nem por digitação nem
-        // por atribuição via JS, então a trava precisa ser explícita.
-        function clampToInput(input, value) {
-            const min = parseFloat(input.min);
-            const max = parseFloat(input.max);
-            let v = value;
-            if (!isNaN(min)) v = Math.max(min, v);
-            if (!isNaN(max)) v = Math.min(max, v);
-            return v;
-        }
 
         function saveSettings() {
             try {
@@ -1775,10 +923,6 @@
         let isCountingDown = false;
         let wakeLock = null;
 
-        function parseTimeToSeconds(t) {
-            const parts = t.split(':').map(Number);
-            return (parts[0] || 0) * 60 + (parts[1] || 0);
-        }
 
         // Android e iOS entregam o AudioContext suspenso: sem um resume() dentro
         // de um gesto do usuário, os beeps ficam mudos (a vibração ainda funciona).
@@ -2174,12 +1318,6 @@
             }));
         }
 
-        // ---------- Geração da imagem para Stories (1080x1920) ----------
-        function formatDateBR(isoDate) {
-            if (!isoDate) return '';
-            const [y, m, d] = isoDate.split('-');
-            return `${d}/${m}/${y}`;
-        }
 
         function onRoastDateChange() {
             const input = document.getElementById('roast-date');
@@ -2843,8 +1981,17 @@
         });
 
         // Superfície declarada para os testes alcançarem o app de dentro do iframe.
-        // Necessária porque escopo de módulo não é acessível de fora (ver tests.html).
-        window.BrewCalc = { ACOES };
+        // Necessária porque escopo de módulo não é acessível de fora — antes o
+        // tests.html contornava isso com w.eval(), que só funcionava por o script ser
+        // clássico. Aqui é explícito: o que está nesta lista é contrato de teste.
+        window.BrewCalc = {
+            ACOES,
+            onDeviceChange,
+            renderRecipeSteps, formatRatio, clampToInput, getRecipeTemp, deviceData,
+            escapeHtml, clicksToGrindLevel, parseTimeToSeconds, formatTime,
+            decodeRecipeFromParam, buildRecipeShareUrl, toBase64Url,
+            normalizeCustomRecipe, generateRecipeQR, temMeta, buildCustomRecipeObject,
+        };
 
         // O botão aparece sempre que o app não estiver rodando instalado, mesmo sem
         // beforeinstallprompt. Depender do evento deixava o convite invisível justamente

@@ -66,14 +66,14 @@ function mostrar(texto) {
 
 document.getElementById('app').addEventListener('load', () => {
     const w = document.getElementById('app').contentWindow;
-    // `const` no topo de um script clássico não vai para o window, então o acesso é por eval
-    const g = expr => w.eval(expr);
-    let API;
-    try {
-        API = g('({ renderRecipeSteps, formatRatio, clampToInput, getRecipeTemp, deviceData, escapeHtml, clicksToGrindLevel, parseTimeToSeconds, formatTime, decodeRecipeFromParam, buildRecipeShareUrl, toBase64Url, normalizeCustomRecipe, generateRecipeQR, temMeta, buildCustomRecipeObject })');
-    } catch (e) {
+    // O app é um módulo ES, cujo escopo não é alcançável de fora. O contrato de teste
+    // é o window.BrewCalc que ele declara de propósito no final do index.html.
+    const API = w.BrewCalc;
+    if (!API) {
         document.getElementById('placar').className = 'vermelho';
-        document.getElementById('placar').textContent = 'Não consegui acessar o index.html no iframe: ' + e.message + ' — sirva por http(s), não por file://';
+        document.getElementById('placar').textContent =
+            'window.BrewCalc não existe — o app não carregou. Confira o console do iframe; '
+            + 'módulo ES exige http(s), não abre por file://';
         return;
     }
     rodar(API);
@@ -144,10 +144,10 @@ function rodar(A) {
         // 30g/501ml só de trocar de aparelho e voltar.
         const d = document.getElementById('app').contentDocument;
         const w = document.getElementById('app').contentWindow;
-        d.getElementById('device').value = 'v60'; w.onDeviceChange();
+        d.getElementById('device').value = 'v60'; w.BrewCalc.onDeviceChange();
         const antes = d.getElementById('water').value;
         ['chemex', 'kalita', 'aeropress', 'v60'].forEach(dev => {
-            d.getElementById('device').value = dev; w.onDeviceChange();
+            d.getElementById('device').value = dev; w.BrewCalc.onDeviceChange();
         });
         const depois = d.getElementById('water').value;
         t('água não muda ao ir e voltar de aparelho', antes === depois, `${antes} → ${depois}`);

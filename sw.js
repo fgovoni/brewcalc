@@ -8,12 +8,19 @@
 
 const CACHE = 'brewcalc-v2';
 
-// O app inteiro cabe nesta lista: um HTML, o manifesto e os ícones.
+// O app inteiro cabe nesta lista: o HTML, a folha de estilo, os módulos, o manifesto
+// e os ícones. Módulo novo em js/ precisa entrar aqui, senão o app deixa de abrir
+// offline — nada quebra online, o que torna o esquecimento fácil de não notar.
 // Caminhos relativos para funcionar em qualquer subdiretório do GitHub Pages.
 const ARQUIVOS = [
     './',
     './index.html',
     './css/estilo.css',
+    './js/qr.js',
+    './js/formato.js',
+    './js/receitas.js',
+    './js/receitas-dados.js',
+    './js/compartilhar.js',
     './manifest.webmanifest',
     './icon.svg',
     './icon-192.png',
