@@ -6,7 +6,7 @@
 // no cache se ela falhar — online você sempre vê a versão publicada; offline, a
 // última que funcionou.
 
-const CACHE = 'brewcalc-v1';
+const CACHE = 'brewcalc-v2';
 
 // O app inteiro cabe nesta lista: um HTML, o manifesto e os ícones.
 // Caminhos relativos para funcionar em qualquer subdiretório do GitHub Pages.
@@ -59,6 +59,26 @@ self.addEventListener('fetch', evento => {
                     return resposta;
                 })
                 .catch(() => caches.match('./index.html').then(r => r || caches.match('./')))
+        );
+        return;
+    }
+
+    // Código (HTML, JS, CSS): mesma regra da navegação, e pelo mesmo motivo. Um
+    // módulo velho servido do cache junto de um index.html novo é a versão pior do
+    // problema que a navegação já evita: em vez de o app inteiro estar velho, ele
+    // fica *misturado* — metade nova, metade antiga. Só ícone e manifesto, que na
+    // prática não mudam, seguem no caminho rápido do cache.
+    if (/\.(js|css|html)$/.test(new URL(req.url).pathname)) {
+        evento.respondWith(
+            fetch(req)
+                .then(resposta => {
+                    if (resposta && resposta.ok) {
+                        const copia = resposta.clone();
+                        caches.open(CACHE).then(c => c.put(req, copia));
+                    }
+                    return resposta;
+                })
+                .catch(() => caches.match(req))
         );
         return;
     }
