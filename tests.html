@@ -374,6 +374,19 @@ function rodar(A) {
         t('clique volta para a calculadora',
             d.getElementById('tab-btn-calc').getAttribute('aria-selected') === 'true');
 
+        // Calcular a receita atravessa app -> estado -> receitas -> timer. É o caminho
+        // que mais módulos cruza, e o único jeito de perceber um import quebrado entre
+        // eles sem abrir o app na mão.
+        clicar('calcularReceita');
+        const container = d.getElementById('recipe-container');
+        t('calcular revela a receita', !container.classList.contains('hidden'));
+        const passos = container.querySelectorAll('.step-time');
+        t('a receita sai com passos', passos.length > 0, `${passos.length} passos`);
+        // O painel do timer nasce escondido e só initTimerForSteps o revela — é o que
+        // prova que o app chegou até o módulo do timer, e não só renderizou a receita.
+        t('o painel do timer foi revelado',
+            !d.getElementById('timer-panel').classList.contains('hidden'));
+
         // O botão tem um <span> dentro em alguns temas; o clique nasce no filho e só
         // chega à ação via closest. Cobre justamente esse caminho.
         const alvoFilho = d.querySelector('[data-acao="aguaMais"]').firstChild;
