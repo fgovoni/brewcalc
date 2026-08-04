@@ -41,22 +41,22 @@
                     <p id="ratio-text">Proporção: 1:17</p>
                 </div>
             </div>
-            <button type="button" class="theme-toggle install-btn hidden" id="install-btn" aria-label="Instalar o BrewCalc no aparelho" title="Instalar o app" onclick="onInstallClick()">
+            <button type="button" class="theme-toggle install-btn hidden" id="install-btn" aria-label="Instalar o BrewCalc no aparelho" title="Instalar o app" data-acao="instalar">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 11l5 5 5-5"></path><path d="M4 20h16"></path></svg>
             </button>
-            <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Alternar tema claro/escuro" onclick="toggleTheme()">🌙</button>
+            <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Alternar tema claro/escuro" data-acao="alternarTema">🌙</button>
         </div>
 
         <div class="tabs" role="tablist">
-            <button type="button" class="tab-btn active" id="tab-btn-calc" role="tab" aria-selected="true" aria-controls="tab-calc" onclick="switchTab('calc')">Calculadora</button>
-            <button type="button" class="tab-btn" id="tab-btn-review" role="tab" aria-selected="false" aria-controls="tab-review" onclick="switchTab('review')">Avaliação</button>
+            <button type="button" class="tab-btn active" id="tab-btn-calc" role="tab" aria-selected="true" aria-controls="tab-calc" data-acao="abaCalculadora">Calculadora</button>
+            <button type="button" class="tab-btn" id="tab-btn-review" role="tab" aria-selected="false" aria-controls="tab-review" data-acao="abaAvaliacao">Avaliação</button>
         </div>
 
         <div id="tab-calc" role="tabpanel" aria-labelledby="tab-btn-calc">
 
         <div class="card">
             <label for="device" class="field-label-inline">Aparelho</label>
-            <select id="device" aria-label="Aparelho de preparo" onchange="onDeviceChange()">
+            <select id="device" aria-label="Aparelho de preparo" data-mudanca="aparelho">
                 <option value="v60">V60</option>
                 <option value="chemex">Chemex</option>
                 <option value="kalita">Kalita Wave</option>
@@ -66,16 +66,16 @@
             </select>
 
             <label for="recipe" class="field-label-inline">Receita</label>
-            <select id="recipe" aria-label="Receita / barista" onchange="onRecipeSelectChange()"></select>
+            <select id="recipe" aria-label="Receita / barista" data-mudanca="receita"></select>
 
             <div id="custom-recipe-actions" class="hidden custom-recipe-actions">
-                <button type="button" class="copy-btn" onclick="editCustomRecipe()">✏️ Editar receita</button>
-                <button type="button" class="copy-btn custom-recipe-delete" onclick="deleteCustomRecipe()">🗑️ Excluir receita</button>
+                <button type="button" class="copy-btn" data-acao="editarReceita">✏️ Editar receita</button>
+                <button type="button" class="copy-btn custom-recipe-delete" data-acao="excluirReceita">🗑️ Excluir receita</button>
             </div>
 
             <div id="official-recipe-fields">
             <label for="roast" class="field-label-inline">Torra do café</label>
-            <select id="roast" aria-label="Nível de torra" onchange="update('roast')">
+            <select id="roast" aria-label="Nível de torra" data-mudanca="torra">
                 <option value="light">Clara</option>
                 <option value="medium" selected>Média</option>
                 <option value="dark">Escura</option>
@@ -88,17 +88,17 @@
                 <div class="info-col">
                     <span class="info-label-row"><svg class="info-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10 13.5V5a2 2 0 114 0v8.5a4 4 0 11-4 0z"></path><path d="M12 9v4"></path></svg>Temp. (°C)</span>
                     <div class="mini-stepper">
-                        <button type="button" aria-label="Diminuir temperatura em 1°C" onclick="adjustTemp(-1)">−</button>
-                        <input type="number" id="temp-input" min="60" max="100" step="1" inputmode="numeric" value="95" oninput="saveSettings()">
-                        <button type="button" aria-label="Aumentar temperatura em 1°C" onclick="adjustTemp(1)">+</button>
+                        <button type="button" aria-label="Diminuir temperatura em 1°C" data-acao="tempMenos">−</button>
+                        <input type="number" id="temp-input" min="60" max="100" step="1" inputmode="numeric" value="95" data-entrada="tempManual">
+                        <button type="button" aria-label="Aumentar temperatura em 1°C" data-acao="tempMais">+</button>
                     </div>
                 </div>
                 <div class="info-col">
                     <span class="info-label-row"><svg class="info-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 4h16l-6.5 8.5V20l-3 1.5v-9L4 4z"></path></svg>Cliques</span>
                     <div class="mini-stepper">
-                        <button type="button" aria-label="Diminuir cliques" onclick="adjustClicks(-1)">−</button>
-                        <input type="number" id="clicks-input" min="5" max="35" step="1" inputmode="numeric" value="18" oninput="onClicksInput()">
-                        <button type="button" aria-label="Aumentar cliques" onclick="adjustClicks(1)">+</button>
+                        <button type="button" aria-label="Diminuir cliques" data-acao="cliquesMenos">−</button>
+                        <input type="number" id="clicks-input" min="5" max="35" step="1" inputmode="numeric" value="18" data-entrada="cliquesManual">
+                        <button type="button" aria-label="Aumentar cliques" data-acao="cliquesMais">+</button>
                     </div>
                     <div class="clicks-ref-wrap">
                         <span id="grind-derived" class="clicks-ref">(Média-Fina)</span>
@@ -112,29 +112,29 @@
 
             <div class="ratio-label-row">
                 <label for="ratio-input" class="field-label-inline">Proporção (água : café)</label>
-                <button type="button" id="ratio-official-btn" class="ratio-official hidden" onclick="restoreOfficialRatio()"></button>
+                <button type="button" id="ratio-official-btn" class="ratio-official hidden" data-acao="razaoOficial"></button>
             </div>
             <div class="stepper" style="margin-bottom:16px;">
-                <button type="button" aria-label="Diminuir proporção em 0,5" onclick="adjustRatio(-0.5)">−</button>
-                <input type="number" id="ratio-input" min="5" max="25" step="0.1" inputmode="decimal" value="16.7" oninput="onRatioInput()" onchange="onRatioCommit()">
-                <button type="button" aria-label="Aumentar proporção em 0,5" onclick="adjustRatio(0.5)">+</button>
+                <button type="button" aria-label="Diminuir proporção em 0,5" data-acao="razaoMenos">−</button>
+                <input type="number" id="ratio-input" min="5" max="25" step="0.1" inputmode="decimal" value="16.7" data-entrada="razaoDigitada" data-mudanca="razaoConfirmada">
+                <button type="button" aria-label="Aumentar proporção em 0,5" data-acao="razaoMais">+</button>
             </div>
 
             <div class="field-grid">
                 <div>
                     <label for="water" class="field-label">Água (ml)</label>
                     <div class="stepper">
-                        <button type="button" aria-label="Diminuir água em 10ml" onclick="adjust('water', -10)">−</button>
-                        <input type="number" id="water" min="0" step="1" inputmode="numeric" value="500" oninput="update('water')">
-                        <button type="button" aria-label="Aumentar água em 10ml" onclick="adjust('water', 10)">+</button>
+                        <button type="button" aria-label="Diminuir água em 10ml" data-acao="aguaMenos">−</button>
+                        <input type="number" id="water" min="0" step="1" inputmode="numeric" value="500" data-entrada="aguaDigitada">
+                        <button type="button" aria-label="Aumentar água em 10ml" data-acao="aguaMais">+</button>
                     </div>
                 </div>
                 <div>
                     <label for="coffee" class="field-label">Café (g)</label>
                     <div class="stepper">
-                        <button type="button" aria-label="Diminuir café em 1g" onclick="adjust('coffee', -1)">−</button>
-                        <input type="number" id="coffee" min="0" step="0.1" inputmode="decimal" value="30" oninput="update('coffee')">
-                        <button type="button" aria-label="Aumentar café em 1g" onclick="adjust('coffee', 1)">+</button>
+                        <button type="button" aria-label="Diminuir café em 1g" data-acao="cafeMenos">−</button>
+                        <input type="number" id="coffee" min="0" step="0.1" inputmode="decimal" value="30" data-entrada="cafeDigitado">
+                        <button type="button" aria-label="Aumentar café em 1g" data-acao="cafeMais">+</button>
                     </div>
                 </div>
             </div>
@@ -161,7 +161,7 @@
             <div class="field-grid" style="margin-bottom:14px;">
                 <div>
                     <label for="custom-clicks" class="field-label-inline">Cliques do moedor</label>
-                    <input type="number" id="custom-clicks" class="text-input" value="18" min="5" max="35" step="1" inputmode="numeric" oninput="onCustomClicksInput()" style="margin-bottom:0;">
+                    <input type="number" id="custom-clicks" class="text-input" value="18" min="5" max="35" step="1" inputmode="numeric" data-entrada="cliquesReceitaCustom" style="margin-bottom:0;">
                     <span id="custom-grind-derived" class="clicks-ref">(Média-Fina)</span>
                 </div>
                 <div>
@@ -172,13 +172,13 @@
 
             <label class="field-label-inline">Passos do despejo</label>
             <div id="custom-steps-list"></div>
-            <button type="button" class="copy-btn add-step-btn" onclick="addCustomStepRow()">+ Adicionar passo</button>
+            <button type="button" class="copy-btn add-step-btn" data-acao="adicionarPasso">+ Adicionar passo</button>
 
             <p id="custom-recipe-error" class="hidden" role="alert"></p>
 
             <div class="builder-actions">
-                <button type="button" class="btn-primary btn-secondary" onclick="cancelCustomRecipeBuilder()">Cancelar</button>
-                <button type="button" class="btn-primary" style="margin-bottom:0;" onclick="saveCustomRecipe()">Salvar receita</button>
+                <button type="button" class="btn-primary btn-secondary" data-acao="cancelarReceita">Cancelar</button>
+                <button type="button" class="btn-primary" style="margin-bottom:0;" data-acao="salvarReceita">Salvar receita</button>
             </div>
         </div>
 
@@ -193,7 +193,7 @@
                         <p id="balance-label" class="slider-value-red">Equilibrado</p>
                     </div>
                 </div>
-                <input type="range" id="balance-slider" min="1" max="5" value="3" oninput="updateSliders(); clearRecipe();">
+                <input type="range" id="balance-slider" min="1" max="5" value="3" data-entrada="kasuyaSlider">
                 <p class="slider-hint">Os dois primeiros despejos decidem o balanço entre doçura e acidez.</p>
             </div>
 
@@ -207,27 +207,27 @@
                         <p id="strength-label" class="slider-value-stone">Padrão</p>
                     </div>
                 </div>
-                <input type="range" id="strength-slider" min="1" max="4" value="3" oninput="updateSliders(); clearRecipe();">
+                <input type="range" id="strength-slider" min="1" max="4" value="3" data-entrada="kasuyaSlider">
                 <p class="slider-hint">O restante dos despejos decide a força (extração) do café.</p>
             </div>
         </div>
 
-        <button type="button" id="generate-btn" class="btn-primary" onclick="generateRecipe()">Calcular Receita</button>
+        <button type="button" id="generate-btn" class="btn-primary" data-acao="calcularReceita">Calcular Receita</button>
 
         <p id="form-error" class="hidden" role="alert"></p>
 
         <div id="recipe-container" class="hidden card">
             <div class="recipe-header">
                 <h2>Instruções de Despejo</h2>
-                <button type="button" onclick="copyRecipe()" aria-label="Copiar receita" class="copy-btn">Copiar</button>
+                <button type="button" data-acao="copiarReceita" aria-label="Copiar receita" class="copy-btn">Copiar</button>
             </div>
 
             <div id="timer-panel" class="timer-panel hidden">
                 <div id="timer-display" class="timer-display">0:00</div>
                 <div id="timer-next-hint" class="timer-next-hint">Toque em Iniciar para começar</div>
                 <div class="timer-controls">
-                    <button type="button" id="timer-start-btn" class="btn-primary btn-secondary" onclick="toggleTimer()">Iniciar</button>
-                    <button type="button" class="btn-primary btn-secondary btn-timer-reset" onclick="resetTimer()">Zerar</button>
+                    <button type="button" id="timer-start-btn" class="btn-primary btn-secondary" data-acao="alternarTimer">Iniciar</button>
+                    <button type="button" class="btn-primary btn-secondary btn-timer-reset" data-acao="zerarTimer">Zerar</button>
                 </div>
             </div>
 
@@ -251,7 +251,7 @@
                     <div>
                         <label for="roast-date" class="field-label-inline">Data da torra</label>
                         <div class="date-field-wrap">
-                            <input type="date" id="roast-date" class="text-input date-native" style="margin-bottom:0;" oninput="onRoastDateChange()">
+                            <input type="date" id="roast-date" class="text-input date-native" style="margin-bottom:0;" data-entrada="dataTorra">
                             <span class="date-display placeholder" id="roast-date-display">dd/mm/aaaa</span>
                         </div>
                     </div>
@@ -300,9 +300,9 @@
                             <option value="Grossa">Grossa</option>
                         </select>
                         <div class="mini-stepper">
-                            <button type="button" aria-label="Diminuir cliques" onclick="adjustReviewClicks(-1)">−</button>
-                            <input type="number" id="review-clicks" min="5" max="35" step="1" inputmode="numeric" placeholder="cliques" oninput="onReviewClicksInput()">
-                            <button type="button" aria-label="Aumentar cliques" onclick="adjustReviewClicks(1)">+</button>
+                            <button type="button" aria-label="Diminuir cliques" data-acao="avaliacaoCliquesMenos">−</button>
+                            <input type="number" id="review-clicks" min="5" max="35" step="1" inputmode="numeric" placeholder="cliques" data-entrada="avaliacaoCliquesManual">
+                            <button type="button" aria-label="Aumentar cliques" data-acao="avaliacaoCliquesMais">+</button>
                         </div>
                     </div>
                 </div>
@@ -316,7 +316,7 @@
                 <div id="rating-sliders"></div>
             </div>
 
-            <button type="button" class="btn-primary" onclick="generateShareImage()">Gerar Imagem</button>
+            <button type="button" class="btn-primary" data-acao="gerarImagem">Gerar Imagem</button>
 
             <div id="share-preview" class="hidden card">
                 <div class="recipe-header">
@@ -324,8 +324,8 @@
                 </div>
                 <canvas id="share-canvas" width="1080" height="1920"></canvas>
                 <div class="share-actions">
-                    <button type="button" class="btn-primary btn-secondary" id="download-btn" onclick="downloadShareImage()">Baixar imagem</button>
-                    <button type="button" class="btn-primary btn-secondary hidden" id="share-btn" onclick="shareImage()">Compartilhar</button>
+                    <button type="button" class="btn-primary btn-secondary" id="download-btn" data-acao="baixarImagem">Baixar imagem</button>
+                    <button type="button" class="btn-primary btn-secondary hidden" id="share-btn" data-acao="compartilharImagem">Compartilhar</button>
                 </div>
             </div>
 
@@ -337,7 +337,7 @@
             <h2 id="install-help-title"></h2>
             <p id="install-help-desc" class="dialog-desc"></p>
             <div class="builder-actions">
-                <button type="button" class="btn-primary" id="install-help-ok" onclick="fecharAjudaInstalacao()">Entendi</button>
+                <button type="button" class="btn-primary" id="install-help-ok" data-acao="fecharAjudaInstalacao">Entendi</button>
             </div>
         </div>
     </div>
@@ -347,8 +347,8 @@
             <h2 id="import-title">⭐ Importar receita?</h2>
             <p id="import-recipe-desc" class="dialog-desc"></p>
             <div class="builder-actions">
-                <button type="button" class="btn-primary btn-secondary" onclick="dismissImport()">Ignorar</button>
-                <button type="button" class="btn-primary" id="import-confirm-btn" onclick="confirmImport()">Importar</button>
+                <button type="button" class="btn-primary btn-secondary" data-acao="ignorarImportacao">Ignorar</button>
+                <button type="button" class="btn-primary" id="import-confirm-btn" data-acao="confirmarImportacao">Importar</button>
             </div>
         </div>
     </div>
@@ -1307,7 +1307,7 @@
             row.innerHTML = `
                 <div class="custom-step-header">
                     <span>Passo</span>
-                    <button type="button" onclick="this.closest('.custom-step-row').remove()" aria-label="Remover passo">Remover</button>
+                    <button type="button" data-acao="removerPasso" aria-label="Remover passo">Remover</button>
                 </div>
             `;
 
@@ -2145,7 +2145,7 @@
                         <span>${ratingIcons[i]} ${label}</span>
                         <span class="rating-value" id="${id}-value">3</span>
                     </div>
-                    <input type="range" class="rating-slider" id="${id}" min="1" max="5" value="3" step="1" oninput="onRatingInput('${id}')">
+                    <input type="range" class="rating-slider" id="${id}" min="1" max="5" value="3" step="1" data-entrada="avaliacaoNota">
                 `;
                 container.appendChild(row);
             });
@@ -2748,6 +2748,103 @@
         function onAjudaInstalacaoKeydown(e) {
             if (e.key === 'Escape') { e.preventDefault(); fecharAjudaInstalacao(); }
         }
+
+        // ---------- Ligação dos controles ----------
+        // Cada controle do HTML declara o nome de uma ação (data-acao / data-entrada /
+        // data-mudanca) e três listeners delegados no document resolvem esse nome aqui.
+        // Duas razões para não usar onclick inline: handler em atributo não sobrevive a
+        // módulo ES (o escopo do módulo não é visível pelo HTML), e não dá para enumerar
+        // — com o mapa, um teste percorre todo [data-acao] do HTML e confirma que existe
+        // função correspondente, cobrindo os ~40 controles de uma vez.
+        //
+        // Cada ação recebe o elemento que disparou, o que atende os controles criados
+        // dinamicamente: a linha de passo customizado e os sete sliders de avaliação,
+        // que nascem de template string e antes precisavam carregar o handler embutido.
+        const ACOES = {
+            // Cabeçalho e abas
+            instalar: () => onInstallClick(),
+            alternarTema: () => toggleTheme(),
+            abaCalculadora: () => switchTab('calc'),
+            abaAvaliacao: () => switchTab('review'),
+
+            // Seleção de receita
+            aparelho: () => onDeviceChange(),
+            receita: () => onRecipeSelectChange(),
+            torra: () => update('roast'),
+            editarReceita: () => editCustomRecipe(),
+            excluirReceita: () => deleteCustomRecipe(),
+
+            // Temperatura e moagem
+            tempMenos: () => adjustTemp(-1),
+            tempMais: () => adjustTemp(1),
+            tempManual: () => saveSettings(),
+            cliquesMenos: () => adjustClicks(-1),
+            cliquesMais: () => adjustClicks(1),
+            cliquesManual: () => onClicksInput(),
+
+            // Proporção, água e café
+            razaoMenos: () => adjustRatio(-0.5),
+            razaoMais: () => adjustRatio(0.5),
+            razaoOficial: () => restoreOfficialRatio(),
+            razaoDigitada: () => onRatioInput(),
+            razaoConfirmada: () => onRatioCommit(),
+            aguaMenos: () => adjust('water', -10),
+            aguaMais: () => adjust('water', 10),
+            aguaDigitada: () => update('water'),
+            cafeMenos: () => adjust('coffee', -1),
+            cafeMais: () => adjust('coffee', 1),
+            cafeDigitado: () => update('coffee'),
+
+            // Construtor de receita customizada
+            adicionarPasso: () => addCustomStepRow(),
+            removerPasso: el => el.closest('.custom-step-row').remove(),
+            cliquesReceitaCustom: () => onCustomClicksInput(),
+            cancelarReceita: () => cancelCustomRecipeBuilder(),
+            salvarReceita: () => saveCustomRecipe(),
+
+            // Kasuya: força e balanço
+            kasuyaSlider: () => { updateSliders(); clearRecipe(); },
+
+            // Receita e timer
+            calcularReceita: () => generateRecipe(),
+            copiarReceita: () => copyRecipe(),
+            alternarTimer: () => toggleTimer(),
+            zerarTimer: () => resetTimer(),
+
+            // Avaliação sensorial
+            dataTorra: () => onRoastDateChange(),
+            avaliacaoCliquesMenos: () => adjustReviewClicks(-1),
+            avaliacaoCliquesMais: () => adjustReviewClicks(1),
+            avaliacaoCliquesManual: () => onReviewClicksInput(),
+            avaliacaoNota: el => onRatingInput(el.id),
+
+            // Compartilhamento e overlays
+            gerarImagem: () => generateShareImage(),
+            baixarImagem: () => downloadShareImage(),
+            compartilharImagem: () => shareImage(),
+            fecharAjudaInstalacao: () => fecharAjudaInstalacao(),
+            ignorarImportacao: () => dismissImport(),
+            confirmarImportacao: () => confirmImport(),
+        };
+
+        // click precisa de closest (o alvo pode ser um filho do botão); input e change
+        // nascem no próprio campo, então basta olhar o alvo.
+        document.addEventListener('click', e => {
+            const el = e.target.closest('[data-acao]');
+            if (el) ACOES[el.dataset.acao](el, e);
+        });
+        document.addEventListener('input', e => {
+            const nome = e.target.dataset.entrada;
+            if (nome) ACOES[nome](e.target, e);
+        });
+        document.addEventListener('change', e => {
+            const nome = e.target.dataset.mudanca;
+            if (nome) ACOES[nome](e.target, e);
+        });
+
+        // Superfície declarada para os testes alcançarem o app de dentro do iframe.
+        // Necessária porque escopo de módulo não é acessível de fora (ver tests.html).
+        window.BrewCalc = { ACOES };
 
         // O botão aparece sempre que o app não estiver rodando instalado, mesmo sem
         // beforeinstallprompt. Depender do evento deixava o convite invisível justamente

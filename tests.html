@@ -295,6 +295,66 @@ function rodar(A) {
         t('receita de 6 passos volta íntegra do link', volta.steps.length === 6 && volta.steps[0].amount === 50);
     }
 
+    // ---------- Ligação dos controles ----------
+    // Antes os handlers eram onclick inline, que não dá para enumerar: errar o nome de
+    // uma função deixava o botão morto sem nenhum teste reclamar. Com o mapa ACOES dá
+    // para varrer todo controle declarado no HTML e conferir que ele resolve.
+    grupo('Todo controle do HTML resolve para uma função');
+    {
+        const d = document.getElementById('app').contentDocument;
+        const w = document.getElementById('app').contentWindow;
+        const controles = d.querySelectorAll('[data-acao], [data-entrada], [data-mudanca]');
+        // Um mesmo elemento pode declarar mais de uma ação — #ratio-input reage a input
+        // e a change com funções diferentes — então são todos os atributos, não o primeiro.
+        const acoesDe = el => [el.dataset.acao, el.dataset.entrada, el.dataset.mudanca].filter(Boolean);
+        t('o HTML declara controles', controles.length >= 40, `achei ${controles.length}`);
+        controles.forEach(el => acoesDe(el).forEach(nome => {
+            t(`ação "${nome}" existe`, typeof w.BrewCalc.ACOES[nome] === 'function');
+        }));
+        // O caminho inverso: ação no mapa sem nenhum controle no HTML é código morto,
+        // ou pior, sinal de que alguém renomeou o atributo e esqueceu do mapa.
+        const usados = new Set(Array.from(controles).flatMap(acoesDe));
+        Object.keys(w.BrewCalc.ACOES).forEach(nome => {
+            // avaliacaoNota e removerPasso vivem em elementos criados em runtime
+            if (nome === 'avaliacaoNota' || nome === 'removerPasso') return;
+            t(`ação "${nome}" é usada por algum controle`, usados.has(nome));
+        });
+        t('sobrou onclick inline no HTML', !/\son(click|input|change)=/.test(d.documentElement.outerHTML));
+    }
+
+    // Resolver o nome no mapa não prova que o clique chega lá: a delegação em si pode
+    // estar quebrada (listener não registrado, closest errado, evento que não borbulha).
+    // Estes clicam de verdade e conferem o efeito no DOM.
+    grupo('Clique de verdade atravessa a delegação');
+    {
+        const d = document.getElementById('app').contentDocument;
+        const clicar = acao => d.querySelector(`[data-acao="${acao}"]`)
+            .dispatchEvent(new d.defaultView.MouseEvent('click', { bubbles: true }));
+
+        const agua = d.getElementById('water');
+        const antes = parseFloat(agua.value);
+        clicar('aguaMais');
+        t('clique em + soma 10ml', parseFloat(agua.value) === antes + 10, `${antes} → ${agua.value}`);
+        clicar('aguaMenos');
+        t('clique em − devolve ao valor original', parseFloat(agua.value) === antes, agua.value);
+
+        clicar('abaAvaliacao');
+        t('clique troca para a aba de avaliação',
+            d.getElementById('tab-btn-review').getAttribute('aria-selected') === 'true');
+        clicar('abaCalculadora');
+        t('clique volta para a calculadora',
+            d.getElementById('tab-btn-calc').getAttribute('aria-selected') === 'true');
+
+        // O botão tem um <span> dentro em alguns temas; o clique nasce no filho e só
+        // chega à ação via closest. Cobre justamente esse caminho.
+        const alvoFilho = d.querySelector('[data-acao="aguaMais"]').firstChild;
+        if (alvoFilho && alvoFilho.nodeType === 1) {
+            alvoFilho.dispatchEvent(new d.defaultView.MouseEvent('click', { bubbles: true }));
+            t('clique em filho do botão também dispara', parseFloat(agua.value) === antes + 10);
+            clicar('aguaMenos');
+        }
+    }
+
     grupo('Helpers de tempo e moagem');
     t('1:30 → 90s', A.parseTimeToSeconds('1:30') === 90);
     t('90s → 1:30', A.formatTime(90) === '1:30');
