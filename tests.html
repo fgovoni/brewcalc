@@ -23,12 +23,21 @@
 </head>
 <body>
 <h1>BrewCalc — testes</h1>
-<p class="sub">Carrega o <code>index.html</code> real num iframe e exercita as regras de cálculo. Precisa ser servido por http(s) — abrir por <code>file://</code> bloqueia o acesso ao iframe.</p>
+<p class="sub">A lógica pura é importada direto dos módulos em <code>js/</code>. O que depende da tela
+(ligação dos controles, cliques, regressão da dose do autor) roda contra o <code>index.html</code> real,
+carregado no iframe. Precisa ser servido por http(s): módulo ES não abre por <code>file://</code>.</p>
 <div id="placar">Carregando index.html…</div>
 <div id="saida"></div>
 <iframe id="app" src="index.html"></iframe>
 
-<script>
+<script type="module">
+// Importa o que é puro sem passar pelo app: se um teste de cálculo quebrar, o
+// problema está no módulo, não na tela.
+import { escapeHtml, clicksToGrindLevel, formatTime, parseTimeToSeconds, formatRatio, clampToInput } from './js/formato.js';
+import { renderRecipeSteps, getRecipeTemp, buildCustomRecipeObject, temMeta, normalizeCustomRecipe } from './js/receitas.js';
+import { deviceData } from './js/receitas-dados.js';
+import { toBase64Url, buildRecipeShareUrl, decodeRecipeFromParam, generateRecipeQR } from './js/compartilhar.js';
+
 let ok = 0, fail = 0, grupoAtual = '', falhasDoGrupo = [], testesDoGrupo = 0;
 const saida = document.getElementById('saida');
 
@@ -66,16 +75,20 @@ function mostrar(texto) {
 
 document.getElementById('app').addEventListener('load', () => {
     const w = document.getElementById('app').contentWindow;
-    // O app é um módulo ES, cujo escopo não é alcançável de fora. O contrato de teste
-    // é o window.BrewCalc que ele declara de propósito no final do index.html.
-    const API = w.BrewCalc;
-    if (!API) {
+    // Os testes de tela precisam do app carregado; window.BrewCalc é a superfície
+    // que o app declara de propósito, porque escopo de módulo não é visível de fora.
+    if (!w.BrewCalc) {
         document.getElementById('placar').className = 'vermelho';
         document.getElementById('placar').textContent =
-            'window.BrewCalc não existe — o app não carregou. Confira o console do iframe; '
-            + 'módulo ES exige http(s), não abre por file://';
+            'window.BrewCalc não existe — o app não carregou. Confira o console do iframe.';
         return;
     }
+    const API = {
+        escapeHtml, clicksToGrindLevel, formatTime, parseTimeToSeconds, formatRatio,
+        clampToInput, renderRecipeSteps, getRecipeTemp, buildCustomRecipeObject, temMeta,
+        normalizeCustomRecipe, deviceData, toBase64Url, buildRecipeShareUrl,
+        decodeRecipeFromParam, generateRecipeQR,
+    };
     // Sem isto uma exceção no meio da bateria interrompia tudo e o placar ficava
     // parado em "Carregando…" — parecia travamento, não falha.
     try {

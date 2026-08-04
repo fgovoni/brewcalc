@@ -727,17 +727,12 @@ document.addEventListener('change', e => {
 });
 
 // Superfície declarada para os testes alcançarem o app de dentro do iframe.
-// Necessária porque escopo de módulo não é acessível de fora — antes o
-// tests.html contornava isso com w.eval(), que só funcionava por o script ser
-// clássico. Aqui é explícito: o que está nesta lista é contrato de teste.
-window.BrewCalc = {
-    ACOES,
-    onDeviceChange,
-    renderRecipeSteps, formatRatio, clampToInput, getRecipeTemp, deviceData,
-    escapeHtml, clicksToGrindLevel, parseTimeToSeconds, formatTime,
-    decodeRecipeFromParam, buildRecipeShareUrl, toBase64Url,
-    normalizeCustomRecipe, generateRecipeQR, temMeta, buildCustomRecipeObject,
-};
+// Necessária porque escopo de módulo não é acessível de fora.
+//
+// Só o que precisa da tela viva entra aqui: a lógica pura o tests.html importa
+// direto dos módulos, que é onde ela deve ser exercitada. ACOES é o que permite
+// varrer todo [data-acao] do HTML e conferir que cada controle resolve.
+window.BrewCalc = { ACOES, onDeviceChange };
 
 // ---------- Service worker: faz o app abrir sem rede ----------
 // Só registra em contexto seguro (https ou localhost); em file:// os navegadores
