@@ -368,21 +368,26 @@
             toBase64Url, buildRecipeShareUrl, decodeRecipeFromParam,
             generateRecipeQR, roundRectPath, qrDrawSize, drawQRCodeOnCanvas,
         } from './js/compartilhar.js';
+        import { initTimerForSteps, toggleTimer, resetTimer, ensureAudioReady, clearRecipe } from './js/timer.js';
+        import {
+            registrarRedesenho, customRecipes, loadCustomRecipes, openRecipeBuilder,
+            closeRecipeBuilder, addCustomStepRow, onCustomClicksInput, cancelCustomRecipeBuilder,
+            saveCustomRecipe, editCustomRecipe, deleteCustomRecipe, getCurrentCustomRawData,
+            guardarReceitaImportada,
+        } from './js/receitas-custom.js';
+        import {
+            getActiveClicks, getActiveTemp, getActiveRatio, getCurrentRecipe, getBrewSummary,
+            razaoFoiTocada, marcarRazaoTocada,
+        } from './js/estado.js';
+        import { ratingLabels, buildRatingSliders, onRatingInput, getRatings } from './js/avaliacao.js';
+        import { drawRadarChart, generateShareImage, downloadShareImage, shareImage } from './js/cartao.js';
 
 
 
 
 
 
-        function getActiveClicks(recipe, roast) {
-            const val = parseInt(document.getElementById('clicks-input').value);
-            return (!isNaN(val) && val > 0) ? val : getDefaultClicks(recipe, roast);
-        }
 
-        function getActiveTemp(recipe, roast) {
-            const val = parseInt(document.getElementById('temp-input').value);
-            return (!isNaN(val) && val > 0) ? val : getDefaultTemp(recipe, roast);
-        }
 
         function adjustClicks(amount) {
             const input = document.getElementById('clicks-input');
@@ -435,222 +440,23 @@
 
 
 
-        function clearRecipe() {
-            document.getElementById('recipe-container').classList.add('hidden');
-            resetTimer();
-        }
-
-        // ---------- Receitas customizadas (criadas pelo usuário) ----------
-        let customRecipes = [];
-        let editingCustomId = null;
-
-        function loadCustomRecipes() {
-            try {
-                const salvas = JSON.parse(localStorage.getItem('brewcalc-custom-recipes')) || [];
-                customRecipes = salvas.map(normalizeCustomRecipe);
-            } catch (e) {
-                customRecipes = [];
-            }
-        }
-
-        function saveCustomRecipes() {
-            try {
-                localStorage.setItem('brewcalc-custom-recipes', JSON.stringify(customRecipes));
-            } catch (e) { /* localStorage indisponível — ignora silenciosamente */ }
-        }
 
 
 
 
-        function addCustomStepRow(time, amount, desc) {
-            const list = document.getElementById('custom-steps-list');
-            const row = document.createElement('div');
-            row.className = 'custom-step-row';
-            // Cabeçalho é estático, pode ser innerHTML
-            row.innerHTML = `
-                <div class="custom-step-header">
-                    <span>Passo</span>
-                    <button type="button" data-acao="removerPasso" aria-label="Remover passo">Remover</button>
-                </div>
-            `;
 
-            // Já os valores vêm do usuário ou de um link importado: criados via DOM com
-            // .value, nunca interpolados em atributo (uma aspa dupla escapava do value=)
-            const criarCampo = (classe, tipo, placeholder, valor) => {
-                const input = document.createElement('input');
-                input.type = tipo;
-                input.className = `text-input ${classe}`;
-                input.placeholder = placeholder;
-                input.style.marginBottom = '0';
-                input.value = valor === undefined || valor === null ? '' : valor;
-                return input;
-            };
 
-            const grid = document.createElement('div');
-            grid.className = 'field-grid';
-            grid.style.gap = '8px';
-            grid.style.marginBottom = '8px';
-            grid.appendChild(criarCampo('step-time-input', 'text', 'Tempo (0:45)', time));
-            grid.appendChild(criarCampo('step-amount-input', 'number', 'Meta (g) — opcional', amount));
-            row.appendChild(grid);
 
-            row.appendChild(criarCampo('step-desc-input', 'text', 'Descrição (ex: Bloom, despejo circular)', desc));
-            list.appendChild(row);
-        }
 
-        function openRecipeBuilder(editData) {
-            editingCustomId = editData ? editData.id : null;
-            document.getElementById('official-recipe-fields').classList.add('hidden');
-            document.getElementById('generate-btn').classList.add('hidden');
-            document.getElementById('kasuya-controls').classList.add('hidden');
-            document.getElementById('custom-recipe-actions').classList.add('hidden');
-            clearRecipe();
-            document.getElementById('recipe-builder-card').classList.remove('hidden');
-            document.getElementById('custom-recipe-error').classList.add('hidden');
 
-            document.getElementById('custom-steps-list').innerHTML = '';
 
-            if (editData) {
-                document.getElementById('custom-name').value = editData.name;
-                document.getElementById('custom-ref-coffee').value = editData.refCoffee;
-                document.getElementById('custom-ref-water').value = editData.refWater;
-                document.getElementById('custom-clicks').value = editData.clicksDefault;
-                document.getElementById('custom-temp').value = editData.tempC;
-                editData.steps.forEach(s => addCustomStepRow(s.time, temMeta(s.amount) ? Math.round(s.amount) : '', s.desc));
-            } else {
-                const refWater = parseFloat(document.getElementById('water').value) || 500;
-                document.getElementById('custom-name').value = '';
-                document.getElementById('custom-ref-coffee').value = document.getElementById('coffee').value || 30;
-                document.getElementById('custom-ref-water').value = refWater;
-                document.getElementById('custom-clicks').value = 18;
-                document.getElementById('custom-temp').value = 93;
-                addCustomStepRow('0:00', Math.round(refWater * 0.12), 'Bloom');
-                addCustomStepRow('0:45', Math.round(refWater * 0.6), 'Despejo circular');
-                addCustomStepRow('1:15', refWater, 'Despejo final');
-            }
-            onCustomClicksInput();
-        }
 
-        function onCustomClicksInput() {
-            document.getElementById('custom-grind-derived').textContent = `(${clicksToGrindLevel(document.getElementById('custom-clicks').value)})`;
-        }
 
-        function closeRecipeBuilder() {
-            document.getElementById('recipe-builder-card').classList.add('hidden');
-            document.getElementById('official-recipe-fields').classList.remove('hidden');
-            document.getElementById('generate-btn').classList.remove('hidden');
-        }
 
-        function cancelCustomRecipeBuilder() {
-            closeRecipeBuilder();
-            const recipeSelect = document.getElementById('recipe');
-            const firstReal = Array.from(recipeSelect.options).find(o => o.value !== '__custom_new__');
-            if (firstReal) recipeSelect.value = firstReal.value;
-            update('recipe');
-        }
 
-        function showBuilderError(msg) {
-            const el = document.getElementById('custom-recipe-error');
-            el.textContent = msg;
-            el.classList.remove('hidden');
-        }
 
-        function saveCustomRecipe() {
-            const name = document.getElementById('custom-name').value.trim();
-            const refCoffee = parseFloat(document.getElementById('custom-ref-coffee').value);
-            const refWater = parseFloat(document.getElementById('custom-ref-water').value);
-            const clicksDefault = parseInt(document.getElementById('custom-clicks').value);
-            const tempC = parseFloat(document.getElementById('custom-temp').value);
-            const rows = Array.from(document.querySelectorAll('.custom-step-row'));
 
-            if (!name) { showBuilderError('Dê um nome pra sua receita.'); return; }
-            if (!refCoffee || !refWater || refCoffee <= 0 || refWater <= 0) { showBuilderError('Informe café e água de referência maiores que zero.'); return; }
-            if (rows.length === 0) { showBuilderError('Adicione pelo menos um passo.'); return; }
 
-            const steps = [];
-            for (const row of rows) {
-                const time = row.querySelector('.step-time-input').value.trim();
-                const metaBruta = row.querySelector('.step-amount-input').value.trim();
-                const desc = row.querySelector('.step-desc-input').value.trim();
-                if (!/^\d{1,2}:\d{2}$/.test(time)) { showBuilderError(`Tempo inválido: "${time}". Use o formato m:ss, ex: 0:45.`); return; }
-                if (!desc) { showBuilderError('Cada passo precisa de uma descrição curta.'); return; }
-
-                // Meta em branco = passo só de instrução, sem despejo (ex: "aguarde a
-                // drenagem", "mexa a crosta"). Se informada, precisa ser positiva.
-                let amount = null;
-                if (metaBruta !== '') {
-                    amount = parseFloat(metaBruta);
-                    if (!temMeta(amount)) {
-                        showBuilderError('Se informar uma meta, ela precisa ser maior que zero — ou deixe em branco para um passo só de instrução.');
-                        return;
-                    }
-                }
-                // Guardado em gramas absolutos: um percentual arredondado perdia precisão
-                // justamente ao reescalar a receita para outro volume
-                steps.push({ time, amount, desc });
-            }
-
-            if (!steps.some(s => temMeta(s.amount))) {
-                showBuilderError('Pelo menos um passo precisa de uma meta em gramas, senão a receita não tem o que despejar.');
-                return;
-            }
-
-            // Os alvos são acumulados na balança, então precisam ser crescentes.
-            // Passos sem meta são ignorados aqui: não movem a balança.
-            const comMeta = steps.filter(s => temMeta(s.amount));
-            for (let i = 1; i < comMeta.length; i += 1) {
-                if (comMeta[i].amount < comMeta[i - 1].amount) {
-                    showBuilderError(`As metas são o total acumulado na balança, então precisam crescer. Uma meta de ${comMeta[i].amount}g vem depois de ${comMeta[i - 1].amount}g.`);
-                    return;
-                }
-            }
-
-            const deviceKey = document.getElementById('device').value;
-            const id = editingCustomId || `custom-${Date.now()}`;
-            const data = { id, device: deviceKey, name, refCoffee, refWater, clicksDefault, tempC, steps };
-
-            const existingIdx = customRecipes.findIndex(r => r.id === id);
-            if (existingIdx >= 0) customRecipes[existingIdx] = data; else customRecipes.push(data);
-            saveCustomRecipes();
-
-            closeRecipeBuilder();
-            populateRecipeSelect(deviceKey, id);
-            update('recipe');
-        }
-
-        function editCustomRecipe() {
-            const recipeKey = document.getElementById('recipe').value;
-            const data = customRecipes.find(r => r.id === recipeKey);
-            if (data) openRecipeBuilder(data);
-        }
-
-        function deleteCustomRecipe() {
-            const recipeKey = document.getElementById('recipe').value;
-            if (!customRecipes.some(r => r.id === recipeKey)) return; // nada a excluir
-            if (!confirm('Excluir esta receita? Essa ação não pode ser desfeita.')) return;
-            customRecipes = customRecipes.filter(r => r.id !== recipeKey);
-            saveCustomRecipes();
-            const deviceKey = document.getElementById('device').value;
-            populateRecipeSelect(deviceKey);
-            update('recipe');
-        }
-
-        function getCurrentRecipe() {
-            const deviceKey = document.getElementById('device').value;
-            const recipeKey = document.getElementById('recipe').value;
-            if (deviceData[deviceKey].recipes[recipeKey]) return deviceData[deviceKey].recipes[recipeKey];
-            const custom = customRecipes.find(r => r.id === recipeKey);
-            if (custom) return buildCustomRecipeObject(custom);
-            return null;
-        }
-
-        // Dados "crus" da receita customizada (formato salvo no localStorage) —
-        // usados para gerar o link/QR de compartilhamento. Só existe para receitas
-        // customizadas; receitas oficiais (Hoffmann, Kasuya etc.) não retornam nada aqui.
-        function getCurrentCustomRawData() {
-            const recipeKey = document.getElementById('recipe').value;
-            return customRecipes.find(r => r.id === recipeKey) || null;
-        }
 
         function populateRecipeSelect(deviceKey, selectRecipeKey) {
             const recipeSelect = document.getElementById('recipe');
@@ -708,22 +514,10 @@
             // Passo de 0,5 preservando o decimal — arredondar para inteiro tornava
             // impossível representar proporções oficiais como 1:16.7 ou 1:15.8
             input.value = formatRatio(clampToInput(input, (isNaN(current) ? 15 : current) + amount));
-            ratioTouched = true;
+            marcarRazaoTocada(true);
             update('ratio');
         }
 
-        // A proporção nunca é arredondada para inteiro: é o eixo que o usuário ajusta
-        // livremente e precisa bater exatamente com a água e o café exibidos.
-        //
-        // Enquanto o usuário não mexer, vale a razão EXATA da receita, não o valor
-        // exibido no campo. O campo mostra uma casa decimal (16.7 para os 16,6667 do
-        // Hoffmann); calcular a água a partir dele corromperia a dose original do autor
-        // — 30g/500ml virava 30g/501ml só de trocar de aparelho e voltar.
-        function getActiveRatio(recipe) {
-            if (!ratioTouched) return recipe.ratio;
-            const val = parseFloat(document.getElementById('ratio-input').value);
-            return (!isNaN(val) && val > 0) ? val : recipe.ratio;
-        }
 
 
 
@@ -740,7 +534,7 @@
                     coffee: document.getElementById('coffee').value,
                     balance: document.getElementById('balance-slider').value,
                     strength: document.getElementById('strength-slider').value,
-                    ratioTouched: ratioTouched
+                    ratioTouched: razaoFoiTocada()
                 }));
             } catch (e) { /* localStorage indisponível (ex: modo privado) — ignora silenciosamente */ }
         }
@@ -759,7 +553,7 @@
                 if (saved.coffee) document.getElementById('coffee').value = saved.coffee;
                 if (saved.balance) document.getElementById('balance-slider').value = saved.balance;
                 if (saved.strength) document.getElementById('strength-slider').value = saved.strength;
-                ratioTouched = !!saved.ratioTouched;
+                marcarRazaoTocada(saved.ratioTouched);
             } catch (e) {
                 populateRecipeSelect('v60');
             }
@@ -782,13 +576,8 @@
         const strengthTexts = ["Baixa (1 Despejo)", "Média-Baixa (2 Despejos)", "Padrão (3 Despejos)", "Alta (4 Despejos)"];
 
         // ---------- Proporção ----------
-        // Marca que o usuário assumiu o controle da proporção. Enquanto for false, trocar
-        // de receita adota a proporção oficial dela; depois de true, a escolha do usuário
-        // é preservada e a oficial fica a um toque de distância no botão ao lado.
-        let ratioTouched = false;
-
         function onRatioInput() {
-            ratioTouched = true;
+            marcarRazaoTocada(true);
             update('ratio');
         }
 
@@ -806,7 +595,7 @@
             const recipe = getCurrentRecipe();
             if (!recipe) return;
             document.getElementById('ratio-input').value = formatRatio(recipe.ratio);
-            ratioTouched = false;
+            marcarRazaoTocada(false);
             update('ratio');
         }
 
@@ -864,7 +653,7 @@
             if (source === 'device' || source === 'recipe') {
                 // A proporção ajustada pelo usuário sobrevive à troca de aparelho/receita —
                 // antes era descartada em silêncio. O botão "oficial" ao lado restaura.
-                if (!ratioTouched) ratioInput.value = formatRatio(recipe.ratio);
+                if (!razaoFoiTocada()) ratioInput.value = formatRatio(recipe.ratio);
                 // A água sai da proporção ATIVA, não de recipe.ratio: usar as duas fontes
                 // fazia a receita saltar de 500ml para 510ml ao primeiro clique no café.
                 const activeRatio = getActiveRatio(recipe);
@@ -910,213 +699,26 @@
             saveSettings();
         }
 
-        // ---------- Timer de preparo ----------
-        let timerSteps = [];
-        let timerInterval = null;
-        let timerElapsed = 0;
-        // Instante (Date.now) correspondente a timerElapsed = 0. O tempo decorrido é sempre
-        // DERIVADO do relógio, nunca contado somando ticks: setInterval acumula deriva e é
-        // estrangulado pelo Android/iOS em segundo plano, o que atrasava o preparo inteiro.
-        let timerAnchor = null;
-        let timerAudioCtx = null;
-        let countdownInterval = null;
-        let isCountingDown = false;
-        let wakeLock = null;
 
 
-        // Android e iOS entregam o AudioContext suspenso: sem um resume() dentro
-        // de um gesto do usuário, os beeps ficam mudos (a vibração ainda funciona).
-        function ensureAudioReady() {
-            try {
-                if (!timerAudioCtx) {
-                    const Ctx = window.AudioContext || window.webkitAudioContext;
-                    if (!Ctx) return;
-                    timerAudioCtx = new Ctx();
-                    // Buffer mudo de 1 sample: destrava a saída de áudio no celular
-                    const src = timerAudioCtx.createBufferSource();
-                    src.buffer = timerAudioCtx.createBuffer(1, 1, 22050);
-                    src.connect(timerAudioCtx.destination);
-                    src.start(0);
-                }
-                if (timerAudioCtx.state === 'suspended') timerAudioCtx.resume();
-            } catch (e) { /* Web Audio indisponível neste navegador — ignora */ }
-        }
 
         // Destrava no primeiro toque em qualquer lugar, antes mesmo de iniciar o timer
         document.addEventListener('pointerdown', ensureAudioReady, { once: true, capture: true });
 
-        function playBeep(freq, duration, vibratePattern) {
-            try {
-                ensureAudioReady();
-                if (!timerAudioCtx) throw new Error('sem Web Audio');
-                const osc = timerAudioCtx.createOscillator();
-                const gain = timerAudioCtx.createGain();
-                osc.frequency.value = freq;
-                osc.connect(gain);
-                gain.connect(timerAudioCtx.destination);
-                const now = timerAudioCtx.currentTime;
-                gain.gain.setValueAtTime(0.0001, now);
-                gain.gain.exponentialRampToValueAtTime(0.3, now + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-                osc.start(now);
-                osc.stop(now + duration + 0.05);
-            } catch (e) { /* Web Audio indisponível neste navegador — ignora */ }
-            if (navigator.vibrate && vibratePattern) navigator.vibrate(vibratePattern);
-        }
 
-        function playTimerBeep() {
-            playBeep(880, 0.5, [200, 100, 200]);
-        }
 
-        function playCountdownTick() {
-            playBeep(600, 0.15, [80]);
-        }
 
-        function playCountdownGo() {
-            playBeep(1046, 0.35, [200]);
-        }
 
-        // ---------- Wake Lock (mantém a tela ligada durante o timer) ----------
-        async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    wakeLock.addEventListener('release', () => { wakeLock = null; });
-                }
-            } catch (e) { /* Wake Lock indisponível ou negado pelo navegador — ignora */ }
-        }
 
-        function releaseWakeLock() {
-            if (wakeLock) {
-                wakeLock.release().catch(() => {});
-                wakeLock = null;
-            }
-        }
 
-        document.addEventListener('visibilitychange', () => {
-            // Reconquista o wake lock e o áudio se o app voltar a ficar visível
-            // com o timer rodando — o Android suspende os dois em segundo plano
-            if (document.visibilityState === 'visible' && timerInterval) {
-                requestWakeLock();
-                ensureAudioReady();
-                // Ressincroniza na hora: enquanto a aba esteve escondida o navegador pode
-                // ter congelado os ticks, mas o café continuou extraindo
-                tickTimer();
-            }
-        });
 
-        function initTimerForSteps(steps) {
-            timerSteps = steps.map(s => ({ ...s, seconds: parseTimeToSeconds(s.time) }));
-            document.getElementById('timer-panel').classList.remove('hidden');
-            resetTimer();
-        }
 
-        function updateTimerHighlight() {
-            let activeIdx = -1;
-            timerSteps.forEach((s, i) => { if (s.seconds <= timerElapsed) activeIdx = i; });
-            document.querySelectorAll('.step-timed').forEach(el => {
-                const idx = parseInt(el.dataset.stepIndex);
-                el.classList.toggle('step-active', idx === activeIdx);
-            });
-            const hintEl = document.getElementById('timer-next-hint');
-            if (!hintEl) return;
-            const next = timerSteps.find(s => s.seconds > timerElapsed);
-            if (timerInterval === null && timerElapsed === 0) {
-                hintEl.textContent = 'Toque em Iniciar para começar';
-            } else if (next) {
-                hintEl.textContent = `Próximo passo em ${formatTime(next.seconds - timerElapsed)}`;
-            } else {
-                hintEl.textContent = 'Última etapa — bom café!';
-            }
-        }
 
-        function updateTimerDisplay() {
-            document.getElementById('timer-display').textContent = formatTime(timerElapsed);
-            updateTimerHighlight();
-        }
 
-        function tickTimer() {
-            if (timerAnchor === null) return;
-            const anterior = timerElapsed;
-            timerElapsed = Math.max(0, Math.floor((Date.now() - timerAnchor) / 1000));
-            if (timerElapsed !== anterior) {
-                // Beepa por TODO passo cruzado desde o tick anterior, não só pelo que casa
-                // exatamente com o segundo atual: com a aba em segundo plano um tick perdido
-                // fazia aquele aviso sumir para sempre. Um beep só, mesmo cruzando vários.
-                const cruzouPasso = timerSteps.some((s, i) =>
-                    i > 0 && s.seconds > anterior && s.seconds <= timerElapsed
-                );
-                if (cruzouPasso) playTimerBeep();
-                updateTimerDisplay();
-            }
-        }
 
-        function startTimer() {
-            if (timerInterval || timerSteps.length === 0 || isCountingDown) return;
-            ensureAudioReady(); // ainda dentro do clique — é aqui que o celular libera o áudio
-            isCountingDown = true;
-            const startBtn = document.getElementById('timer-start-btn');
-            const displayEl = document.getElementById('timer-display');
-            const hintEl = document.getElementById('timer-next-hint');
-            if (startBtn) startBtn.disabled = true;
-            let count = 3;
-            if (displayEl) displayEl.textContent = String(count);
-            if (hintEl) hintEl.textContent = 'Prepare-se...';
-            playCountdownTick();
-            countdownInterval = setInterval(() => {
-                count--;
-                if (count > 0) {
-                    if (displayEl) displayEl.textContent = String(count);
-                    playCountdownTick();
-                } else {
-                    clearInterval(countdownInterval);
-                    countdownInterval = null;
-                    isCountingDown = false;
-                    if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Pausar'; }
-                    if (displayEl) displayEl.textContent = formatTime(timerElapsed);
-                    playCountdownGo();
-                    requestWakeLock();
-                    // Âncora recuada pelo tempo já decorrido, para o "Continuar" retomar
-                    // exatamente de onde parou
-                    timerAnchor = Date.now() - timerElapsed * 1000;
-                    timerInterval = setInterval(tickTimer, 250);
-                    updateTimerHighlight();
-                }
-            }, 1000);
-        }
 
-        function pauseTimer() {
-            tickTimer(); // congela no tempo real do instante da pausa
-            clearInterval(timerInterval);
-            timerInterval = null;
-            timerAnchor = null;
-            releaseWakeLock();
-            const btn = document.getElementById('timer-start-btn');
-            if (btn) btn.textContent = 'Continuar';
-        }
 
-        function toggleTimer() {
-            if (timerInterval) { pauseTimer(); return; }
-            if (isCountingDown) return;
-            startTimer();
-        }
 
-        function resetTimer() {
-            clearInterval(timerInterval);
-            clearInterval(countdownInterval);
-            timerInterval = null;
-            countdownInterval = null;
-            isCountingDown = false;
-            timerElapsed = 0;
-            timerAnchor = null;
-            releaseWakeLock();
-            const btn = document.getElementById('timer-start-btn');
-            if (btn) { btn.textContent = 'Iniciar'; btn.disabled = false; }
-            const displayEl = document.getElementById('timer-display');
-            if (displayEl) displayEl.textContent = '0:00';
-            document.querySelectorAll('.step-timed').forEach(el => el.classList.remove('step-active'));
-            updateTimerHighlight();
-        }
 
         function generateRecipe() {
             const recipe = getCurrentRecipe();
@@ -1238,26 +840,6 @@
             }
         }
 
-        function getBrewSummary() {
-            const deviceKey = document.getElementById('device').value;
-            const recipe = getCurrentRecipe();
-            // Sem receita selecionada (ex: construtor aberto) o resumo fica neutro em vez
-            // de estourar um TypeError ao acessar recipe.label
-            if (!recipe) return { method: '—', dose: '—', settings: '—' };
-            const roast = document.getElementById('roast').value;
-            const deviceLabel = deviceData[deviceKey].label;
-            const shortRecipeLabel = recipe.label.replace(/\s*\([^)]*\)\s*$/, '');
-            const ratio = getActiveRatio(recipe);
-            const coffee = document.getElementById('coffee').value;
-            const water = document.getElementById('water').value;
-            const clicks = getActiveClicks(recipe, roast);
-            const grindLevel = clicksToGrindLevel(clicks);
-            const temp = getActiveTemp(recipe, roast);
-            const method = `${deviceLabel} · ${shortRecipeLabel}`;
-            const dose = `${coffee}g : ${water}ml (1:${formatRatio(ratio)})`;
-            const settings = `${clicks} cliques (${grindLevel}) · ${temp}°C`;
-            return { method, dose, settings };
-        }
 
         function updateBrewSummary() {
             const { method, dose, settings } = getBrewSummary();
@@ -1266,57 +848,9 @@
                 `Preparado com: <b>${escapeHtml(method)}</b><br>${escapeHtml(dose)} · ${escapeHtml(settings)}`;
         }
 
-        // ---------- Avaliação sensorial ----------
-        const ratingLabels = ['Aroma', 'Doçura', 'Acidez', 'Amargor', 'Sabor', 'Corpo', 'Retrogosto'];
-        const ratingIcons = [
-            '<svg class="rating-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M8 21c0-2 2-2 2-4s-2-2-2-4 2-2 2-4"/><path d="M14 21c0-2 2-2 2-4s-2-2-2-4 2-2 2-4"/></svg>', // Aroma — linhas de vapor/aroma
-            '<svg class="rating-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M5 12h14M12 5v14"/></svg>', // Doçura — cubo de açúcar
-            '<svg class="rating-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M4.8 7.2l14.4 9.6M4.8 16.8l14.4-9.6"/></svg>', // Acidez — gomo cítrico
-            '<svg class="rating-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 000 18z" fill="currentColor" stroke="none"/></svg>', // Amargor — contraste claro/escuro
-            '<svg class="rating-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 15c2-5 4-5 6 0s4 5 6 0 4-5 4 0"/></svg>', // Sabor — onda de sabor
-            '<svg class="rating-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 3c4 5 7 8.5 7 12a7 7 0 01-14 0c0-3.5 3-7 7-12z"/></svg>', // Corpo — gota (viscosidade)
-            '<svg class="rating-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3c0 4 3 6 5 8-2 2-5 4-5 8M17 3c0 4-3 6-5 8 2 2 5 4 5 8"/></svg>' // Retrogosto — ampulheta
-        ];
 
-        function buildRatingSliders() {
-            const container = document.getElementById('rating-sliders');
-            ratingLabels.forEach((label, i) => {
-                const id = `rating-${i}`;
-                const row = document.createElement('div');
-                row.className = 'rating-row';
-                row.innerHTML = `
-                    <div class="rating-row-header">
-                        <span>${ratingIcons[i]} ${label}</span>
-                        <span class="rating-value" id="${id}-value">3</span>
-                    </div>
-                    <input type="range" class="rating-slider" id="${id}" min="1" max="5" value="3" step="1" data-entrada="avaliacaoNota">
-                `;
-                container.appendChild(row);
-            });
-            ratingLabels.forEach((_, i) => onRatingInput(`rating-${i}`));
 
-            // Solta o foco de qualquer campo de texto (ex: notas) antes do slider assumir o toque,
-            // evitando que o teclado do celular "prenda" o foco no campo anterior
-            container.addEventListener('touchstart', () => {
-                const active = document.activeElement;
-                if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT')) {
-                    active.blur();
-                }
-            }, { passive: true });
-        }
 
-        function onRatingInput(id) {
-            const slider = document.getElementById(id);
-            document.getElementById(`${id}-value`).innerText = slider.value;
-            slider.style.setProperty('--value', ((slider.value - 1) / 4) * 100 + '%');
-        }
-
-        function getRatings() {
-            return ratingLabels.map((label, i) => ({
-                label,
-                value: parseInt(document.getElementById(`rating-${i}`).value)
-            }));
-        }
 
 
         function onRoastDateChange() {
@@ -1332,350 +866,12 @@
             }
         }
 
-        // maxLines (opcional): corta o texto com reticências em vez de deixar
-        // um campo longo empurrar o resto do card para fora do canvas
-        // Quebra uma palavra que sozinha não cabe na largura, para um nome de café sem
-        // espaços não vazar para fora do card
-        function quebrarPalavraLonga(ctx, palavra, maxWidth) {
-            if (ctx.measureText(palavra).width <= maxWidth) return [palavra];
-            const pedacos = [];
-            let atual = '';
-            for (const ch of palavra) {
-                if (atual && ctx.measureText(atual + ch).width > maxWidth) {
-                    pedacos.push(atual);
-                    atual = ch;
-                } else {
-                    atual += ch;
-                }
-            }
-            if (atual) pedacos.push(atual);
-            return pedacos;
-        }
 
-        function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
-            const words = text.split(' ').flatMap(p => quebrarPalavraLonga(ctx, p, maxWidth));
-            let line = '';
-            let lines = 0;
-            for (let n = 0; n < words.length; n++) {
-                const testLine = line + words[n] + ' ';
-                if (ctx.measureText(testLine).width > maxWidth && n > 0) {
-                    if (maxLines && lines === maxLines - 1) {
-                        ctx.fillText(line.trimEnd() + '…', x, y + lines * lineHeight);
-                        return y + lines * lineHeight + lineHeight;
-                    }
-                    ctx.fillText(line, x, y + lines * lineHeight);
-                    line = words[n] + ' ';
-                    lines++;
-                } else {
-                    line = testLine;
-                }
-            }
-            ctx.fillText(line, x, y + lines * lineHeight);
-            return y + lines * lineHeight + lineHeight;
-        }
 
-        function drawRadarChart(ctx, cx, cy, radius, ratings) {
-            const n = ratings.length;
-            const angleStep = (Math.PI * 2) / n;
-            const startAngle = -Math.PI / 2;
 
-            // Grades de fundo (1 a 5)
-            ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-            ctx.lineWidth = 2;
-            for (let level = 1; level <= 5; level++) {
-                const r = (level / 5) * radius;
-                ctx.beginPath();
-                for (let i = 0; i <= n; i++) {
-                    const angle = startAngle + i * angleStep;
-                    const x = cx + r * Math.cos(angle);
-                    const y = cy + r * Math.sin(angle);
-                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-            }
 
-            // Eixos + rótulos
-            ctx.fillStyle = '#d1d5db';
-            ctx.font = '600 30px system-ui, sans-serif';
-            for (let i = 0; i < n; i++) {
-                const angle = startAngle + i * angleStep;
-                const x = cx + radius * Math.cos(angle);
-                const y = cy + radius * Math.sin(angle);
-                ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-                ctx.beginPath();
-                ctx.moveTo(cx, cy);
-                ctx.lineTo(x, y);
-                ctx.stroke();
 
-                const labelR = radius + 55;
-                const lx = cx + labelR * Math.cos(angle);
-                const ly = cy + labelR * Math.sin(angle);
-                ctx.textAlign = Math.abs(Math.cos(angle)) < 0.2 ? 'center' : (Math.cos(angle) > 0 ? 'left' : 'right');
-                ctx.textBaseline = Math.abs(Math.sin(angle)) < 0.2 ? 'middle' : (Math.sin(angle) > 0 ? 'top' : 'bottom');
-                ctx.fillText(ratings[i].label, lx, ly);
-            }
 
-            // Polígono de valores
-            ctx.beginPath();
-            ratings.forEach((r, i) => {
-                const angle = startAngle + i * angleStep;
-                const rad = (r.value / 5) * radius;
-                const x = cx + rad * Math.cos(angle);
-                const y = cy + rad * Math.sin(angle);
-                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            });
-            ctx.closePath();
-            ctx.fillStyle = 'rgba(217, 164, 65, 0.35)';
-            ctx.fill();
-            ctx.strokeStyle = '#e8be6e';
-            ctx.lineWidth = 4;
-            ctx.stroke();
-
-            // Pontos nos vértices
-            ratings.forEach((r, i) => {
-                const angle = startAngle + i * angleStep;
-                const rad = (r.value / 5) * radius;
-                const x = cx + rad * Math.cos(angle);
-                const y = cy + rad * Math.sin(angle);
-                ctx.beginPath();
-                ctx.arc(x, y, 9, 0, Math.PI * 2);
-                ctx.fillStyle = '#d9a441';
-                ctx.fill();
-            });
-        }
-
-        function generateShareImage() {
-            const recipe = getCurrentRecipe();
-            if (!recipe) {
-                alert('Selecione uma receita na aba Calculadora antes de gerar a imagem.');
-                return;
-            }
-            const canvas = document.getElementById('share-canvas');
-            const ctx = canvas.getContext('2d');
-            const W = canvas.width, H = canvas.height;
-
-            // Fundo
-            const bg = ctx.createLinearGradient(0, 0, 0, H);
-            bg.addColorStop(0, '#241a13');
-            bg.addColorStop(1, '#140e0a');
-            ctx.fillStyle = bg;
-            ctx.fillRect(0, 0, W, H);
-
-            const coffeeName = document.getElementById('coffee-name').value || 'Café sem nome';
-            const roasteryName = document.getElementById('roastery-name').value;
-            const roastDate = formatDateBR(document.getElementById('roast-date').value);
-            const region = document.getElementById('region').value;
-            const roast = document.getElementById('review-roast').value;
-            const process = document.getElementById('review-process').value;
-            const variety = document.getElementById('variety').value;
-            const temp = document.getElementById('review-temp').value;
-            const grind = document.getElementById('review-grind').value;
-            const notes = document.getElementById('review-notes').value;
-            const ratings = getRatings();
-            const brew = getBrewSummary();
-
-            // Marca d'água / nome do app
-            ctx.fillStyle = '#c9a876';
-            ctx.font = "700 42px ui-serif, Georgia, 'Times New Roman', serif";
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'alphabetic';
-            ctx.fillText('☕ BrewCalc', 60, 90);
-
-            // Nome do café
-            ctx.fillStyle = '#f3e9dd';
-            ctx.font = "700 64px ui-serif, Georgia, 'Times New Roman', serif";
-            ctx.textAlign = 'center';
-            let y = wrapCanvasText(ctx, coffeeName, W / 2, 200, W - 140, 68);
-
-            // Torrefação
-            if (roasteryName) {
-                ctx.fillStyle = '#a08b76';
-                ctx.font = '500 34px system-ui, sans-serif';
-                ctx.fillText(roasteryName, W / 2, y + 10);
-                y += 60;
-            } else {
-                y += 10;
-            }
-
-            // Método de preparo (aparelho + receita/barista)
-            ctx.fillStyle = '#e8be6e';
-            ctx.font = '600 28px system-ui, sans-serif';
-            ctx.textAlign = 'center';
-            y = wrapCanvasText(ctx, brew.method, W / 2, y + 20, W - 140, 36) + 6;
-
-            // Duas colunas: café (esquerda) e receita (direita, com notas no final)
-            const leftDetails = [
-                ['Torra', roast], ['Data da torra', roastDate || '—'],
-                ['Processo', process], ['Região', region || '—'],
-                ['Variedade', variety || '—']
-            ].filter(([, v]) => v);
-
-            const clicksVal = document.getElementById('review-clicks').value;
-            const rightDetails = [
-                ['Dose', brew.dose], ['Água', temp ? `${temp}°C` : '—'],
-                ['Moagem', grind], ['Cliques', clicksVal ? `${clicksVal} cliques` : '—']
-            ].filter(([, v]) => v);
-
-            ctx.textAlign = 'left';
-            const colW = (W - 120) / 2;
-            const leftX = 60;
-            const rightX = 60 + colW;
-            const dy = y + 40;
-
-            function renderDetailColumn(items, x, startY) {
-                items.forEach(([label, value], idx) => {
-                    const py = startY + idx * 78;
-                    ctx.fillStyle = '#8a7360';
-                    ctx.font = '600 24px system-ui, sans-serif';
-                    ctx.fillText(label.toUpperCase(), x, py);
-                    ctx.fillStyle = '#e5d8c8';
-                    ctx.font = '600 34px system-ui, sans-serif';
-                    ctx.fillText(value, x, py + 38);
-                });
-                return startY + items.length * 78;
-            }
-
-            const leftBottomY = renderDetailColumn(leftDetails, leftX, dy);
-            let rightBottomY = renderDetailColumn(rightDetails, rightX, dy);
-
-            // Notas sensoriais — no final da coluna da receita
-            if (notes) {
-                ctx.fillStyle = '#8a7360';
-                ctx.font = '600 24px system-ui, sans-serif';
-                ctx.fillText('NOTAS SENSORIAIS', rightX, rightBottomY);
-                ctx.fillStyle = '#e8be6e';
-                ctx.font = 'italic 400 28px system-ui, sans-serif';
-                rightBottomY = wrapCanvasText(ctx, notes, rightX, rightBottomY + 36, colW - 20, 34, 4) + 6;
-            }
-
-            let chartY = Math.max(leftBottomY, rightBottomY) + 30;
-
-            // QR de importação: só faz sentido para receitas customizadas — as oficiais
-            // (Hoffmann, Kasuya etc.) já vêm embutidas em qualquer instalação do app.
-            const isCustomRecipe = !!recipe.isCustom;
-
-            // Gera o QR antes de medir: o painel só é reservado se ele realmente existir
-            let qrObj = null;
-            let rawData = null;
-            if (isCustomRecipe) {
-                rawData = getCurrentCustomRawData();
-                if (rawData) {
-                    try { qrObj = generateRecipeQR(buildRecipeShareUrl(rawData).url); }
-                    catch (e) { qrObj = null; }
-                }
-            }
-
-            const footerY = H - 55;
-            // labelPad cobre os rótulos, que ficam a radius+55 do centro mais a altura da fonte
-            const labelPad = 88;
-            const raioMin = 125;
-            const alturaLegendaQR = 96;
-
-            // Reparte o espaço abaixo dos detalhes entre o radar e o painel do QR.
-            // O QR tem prioridade: abaixo de ~4 pixels por módulo nenhuma câmera o lê,
-            // enquanto o radar continua compreensível menor. Antes o radar tinha a
-            // preferência e era empurrado para cima, invadindo o bloco de detalhes.
-            const espacoLivre = footerY - 40 - chartY;
-            const radarMinimo = raioMin * 2 + labelPad * 2;
-            const tetoQR = Math.max(0, espacoLivre - radarMinimo - 46 - alturaLegendaQR);
-            const ladoQR = qrObj ? qrDrawSize(qrObj, Math.min(430, tetoQR)) : 0;
-            const qrPanelH = qrObj ? ladoQR + alturaLegendaQR : 0;
-            // Espaço reservado embaixo: painel do QR, ou só o aviso de receita longa demais
-            const reservado = qrObj ? qrPanelH + 46 : (rawData ? 86 : 0);
-            const chartBottom = footerY - 40 - reservado;
-
-            // O radar usa o que sobrou, sem nunca subir para cima dos detalhes
-            const chartRadius = Math.max(raioMin, Math.min(340, Math.floor((chartBottom - chartY - labelPad * 2) / 2)));
-            const chartCenterY = chartY + labelPad + chartRadius;
-            drawRadarChart(ctx, W / 2, chartCenterY, chartRadius, ratings);
-
-            // Nota média
-            const avg = (ratings.reduce((s, r) => s + r.value, 0) / ratings.length).toFixed(1);
-            ctx.fillStyle = '#f3e9dd';
-            ctx.font = '700 56px system-ui, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(avg, W / 2, chartCenterY - 10);
-            ctx.fillStyle = '#a08b76';
-            ctx.font = '500 22px system-ui, sans-serif';
-            ctx.fillText('MÉDIA', W / 2, chartCenterY + 24);
-
-            if (qrObj) {
-                // QR centralizado com a chamada embaixo: o código precisa ser grande o
-                // bastante para ser lido, e é ele que manda no layout do painel.
-                const panelW = ladoQR + 120;
-                const panelX = Math.round((W - panelW) / 2);
-                const panelY = footerY - 40 - qrPanelH;
-
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.045)';
-                roundRectPath(ctx, panelX, panelY, panelW, qrPanelH, 30);
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(201, 168, 118, 0.32)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                const qrX = Math.round((W - ladoQR) / 2);
-                const qrY = panelY + 24;
-                drawQRCodeOnCanvas(ctx, qrObj, qrX, qrY, ladoQR);
-
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'alphabetic';
-                ctx.fillStyle = '#e8be6e';
-                ctx.font = '700 28px system-ui, sans-serif';
-                ctx.fillText('Aponte a câmera para importar esta receita', W / 2, qrY + ladoQR + 46);
-            } else if (rawData) {
-                ctx.fillStyle = '#8a7360';
-                ctx.font = '500 24px system-ui, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'alphabetic';
-                wrapCanvasText(ctx, 'Receita longa demais para gerar o QR de importação', W / 2, footerY - 70, W - 200, 30);
-            }
-
-            // Rodapé — URL do site, sempre ancorado na base do canvas
-            ctx.fillStyle = '#8a7360';
-            ctx.font = '500 28px system-ui, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'alphabetic';
-            ctx.fillText('fgovoni.github.io/brewcalc', W / 2, footerY);
-
-            document.getElementById('share-preview').classList.remove('hidden');
-            document.getElementById('share-preview').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-            if (navigator.share && navigator.canShare) {
-                document.getElementById('share-btn').classList.remove('hidden');
-            }
-        }
-
-        function canvasToBlob(canvas) {
-            return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-        }
-
-        async function downloadShareImage() {
-            const canvas = document.getElementById('share-canvas');
-            const blob = await canvasToBlob(canvas);
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            const coffeeName = (document.getElementById('coffee-name').value || 'cafe').trim().replace(/\s+/g, '-').toLowerCase();
-            a.href = url;
-            a.download = `brewcalc-${coffeeName}.png`;
-            a.click();
-            // Revogar na linha seguinte ao click() cancelava o download no Firefox,
-            // que ainda não tinha lido o blob
-            setTimeout(() => URL.revokeObjectURL(url), 60000);
-        }
-
-        async function shareImage() {
-            const canvas = document.getElementById('share-canvas');
-            const blob = await canvasToBlob(canvas);
-            const coffeeName = document.getElementById('coffee-name').value || 'Café';
-            const file = new File([blob], 'brewcalc.png', { type: 'image/png' });
-            try {
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({ files: [file], title: coffeeName });
-                } else {
-                    downloadShareImage();
-                }
-            } catch (e) { /* usuário cancelou o compartilhamento — nada a fazer */ }
-        }
 
         // ---------- Importar receita recebida via QR / link ----------
         let pendingImportData = null;
@@ -1757,9 +953,7 @@
         function confirmImport() {
             if (!pendingImportData) return;
             const data = pendingImportData;
-            const existingIdx = customRecipes.findIndex(r => r.id === data.id);
-            if (existingIdx >= 0) customRecipes[existingIdx] = data; else customRecipes.push(data);
-            saveCustomRecipes();
+            guardarReceitaImportada(data);
 
             closeImportOverlay();
             history.replaceState(null, '', location.pathname + location.search);

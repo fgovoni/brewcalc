@@ -76,7 +76,23 @@ document.getElementById('app').addEventListener('load', () => {
             + 'módulo ES exige http(s), não abre por file://';
         return;
     }
-    rodar(API);
+    // Sem isto uma exceção no meio da bateria interrompia tudo e o placar ficava
+    // parado em "Carregando…" — parecia travamento, não falha.
+    try {
+        rodar(API);
+    } catch (e) {
+        fecharGrupo();
+        const placar = document.getElementById('placar');
+        placar.className = 'vermelho';
+        placar.textContent = `✗ a bateria abortou em "${grupoAtual}": ${e.message}`;
+        mostrar(e.stack || String(e));
+    }
+});
+
+// Erro dentro do app (no iframe) não aparece aqui por padrão; sem isso um módulo
+// que falha ao carregar viraria um teste vermelho sem explicação.
+window.addEventListener('error', e => {
+    if (e.filename && !e.filename.endsWith('tests.html')) mostrar('erro no app: ' + e.message + ' — ' + e.filename);
 });
 
 function rodar(A) {
