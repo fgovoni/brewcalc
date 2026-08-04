@@ -137,6 +137,28 @@ function rodar(A) {
         t(`ratio == refDose ${dk}/${rk}`, Math.abs(r.ratio - r.refDose.water / r.refDose.coffee) < 1e-9);
     }
 
+    grupo('Dose original do autor não se corrompe ao navegar');
+    {
+        // Regressão: getActiveRatio lia o valor EXIBIDO no campo (16.7) em vez da razão
+        // exata da receita (16,6667), então a dose 30g/500ml do Hoffmann virava
+        // 30g/501ml só de trocar de aparelho e voltar.
+        const d = document.getElementById('app').contentDocument;
+        const w = document.getElementById('app').contentWindow;
+        d.getElementById('device').value = 'v60'; w.onDeviceChange();
+        const antes = d.getElementById('water').value;
+        ['chemex', 'kalita', 'aeropress', 'v60'].forEach(dev => {
+            d.getElementById('device').value = dev; w.onDeviceChange();
+        });
+        const depois = d.getElementById('water').value;
+        t('água não muda ao ir e voltar de aparelho', antes === depois, `${antes} → ${depois}`);
+        const cafe = parseFloat(d.getElementById('coffee').value);
+        const exato = A.deviceData.v60.recipes.hoffmann.ratio;
+        t('água == café × razão exata (não a exibida)', Math.abs(parseFloat(depois) - cafe * exato) < 0.5,
+          `água=${depois} café=${cafe}`);
+        t('dose do Hoffmann continua 30g/500ml', cafe === 30 && parseFloat(depois) === 500,
+          `${cafe}g / ${depois}ml`);
+    }
+
     grupo('Limites dos campos são respeitados');
     t('acima do max trava', A.clampToInput({ min: '5', max: '35' }, 99) === 35);
     t('abaixo do min trava', A.clampToInput({ min: '5', max: '35' }, 1) === 5);

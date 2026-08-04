@@ -1949,7 +1949,13 @@
 
         // A proporção nunca é arredondada para inteiro: é o eixo que o usuário ajusta
         // livremente e precisa bater exatamente com a água e o café exibidos.
+        //
+        // Enquanto o usuário não mexer, vale a razão EXATA da receita, não o valor
+        // exibido no campo. O campo mostra uma casa decimal (16.7 para os 16,6667 do
+        // Hoffmann); calcular a água a partir dele corromperia a dose original do autor
+        // — 30g/500ml virava 30g/501ml só de trocar de aparelho e voltar.
         function getActiveRatio(recipe) {
+            if (!ratioTouched) return recipe.ratio;
             const val = parseFloat(document.getElementById('ratio-input').value);
             return (!isNaN(val) && val > 0) ? val : recipe.ratio;
         }
