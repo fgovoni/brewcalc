@@ -896,9 +896,12 @@
             var QRErrorCorrectionLevel = { L: 1, M: 0, Q: 3, H: 2 };
             var QRMaskPattern = { P0: 0, P1: 1, P2: 2, P3: 3, P4: 4, P5: 5, P6: 6, P7: 7 };
 
+            // Centros dos padrões de alinhamento por versão (1 a 20)
             var PATTERN_POSITION_TABLE = [
                 [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34],
-                [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50]
+                [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50],
+                [6, 30, 54], [6, 32, 58], [6, 34, 62], [6, 26, 46, 66], [6, 26, 48, 70],
+                [6, 26, 50, 74], [6, 30, 54, 78], [6, 30, 56, 82], [6, 30, 58, 86], [6, 34, 62, 90]
             ];
             var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
             var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
@@ -1032,10 +1035,16 @@
                 };
             }
 
-            // Blocos Reed-Solomon [contagem, total, dados] por versão (1–10), nível L
+            // Blocos Reed-Solomon [contagem, total, dados] por versão (1–20), nível L.
+            // Estes números vêm do padrão ISO/IEC 18004 e NÃO devem ser editados à mão:
+            // um erro aqui gera um QR de aparência perfeita que nenhum leitor consegue
+            // ler. Foram conferidos decodificando os QR gerados com um leitor externo.
             var RS_BLOCK_TABLE_L = [
                 [1, 26, 19], [1, 44, 34], [1, 70, 55], [1, 100, 80], [1, 134, 108],
-                [2, 86, 68], [2, 98, 78], [2, 121, 97], [2, 146, 116], [2, 86, 68, 2, 87, 69]
+                [2, 86, 68], [2, 98, 78], [2, 121, 97], [2, 146, 116], [2, 86, 68, 2, 87, 69],
+                [4, 101, 81], [2, 116, 92, 2, 117, 93], [4, 133, 107], [3, 145, 115, 1, 146, 116],
+                [5, 109, 87, 1, 110, 88], [5, 122, 98, 1, 123, 99], [1, 135, 107, 5, 136, 108],
+                [5, 150, 120, 1, 151, 121], [3, 141, 113, 4, 142, 114], [3, 135, 107, 5, 136, 108]
             ];
 
             function getRSBlocks(typeNumber) {
@@ -1293,7 +1302,7 @@
                 tc: data.tempC,
                 // Gramas absolutos, não percentual: arredondar o percentual para 3 casas
                 // fazia 50g em 320ml virar 62,4g (e não 62,5g) ao reescalar para 400ml
-                st: data.steps.map(s => [parseTimeToSeconds(s.time), s.amount, s.desc])
+                st: data.steps.map(s => [parseTimeToSeconds(s.time), temMeta(s.amount) ? s.amount : null, s.desc])
             };
             const param = toBase64Url(JSON.stringify(compact));
             const base = location.href.split('#')[0];
@@ -1330,7 +1339,8 @@
                 if (!Array.isArray(passo) || passo.length !== 3) invalido('passo malformado');
                 const [sec, amount, desc] = passo;
                 if (!numeroValido(sec, 0, 3600)) invalido('tempo de passo inválido');
-                if (!numeroValido(amount, 0, 10000)) invalido('quantidade de passo inválida');
+                // null = passo só de instrução, sem despejo
+                if (amount !== null && !numeroValido(amount, 0, 10000)) invalido('quantidade de passo inválida');
                 if (!textoValido(desc, LIMITES_IMPORT.desc)) invalido('descrição de passo inválida');
                 return { time: formatTime(Math.round(sec)), amount, desc };
             });
@@ -1348,7 +1358,7 @@
         }
 
         function generateRecipeQR(url) {
-            for (let typeNumber = 1; typeNumber <= 10; typeNumber += 1) {
+            for (let typeNumber = 1; typeNumber <= 20; typeNumber += 1) {
                 try {
                     const qr = qrcode(typeNumber);
                     qr.addData(url);
@@ -1356,7 +1366,7 @@
                     return qr;
                 } catch (e) { /* não coube nessa versão — tenta a próxima */ }
             }
-            return null; // dados longos demais para caber num QR de até 271 bytes (versão 10, nível L)
+            return null; // acima de ~690 bytes (versão 20, nível L) não há mais para onde crescer
         }
 
         function roundRectPath(ctx, x, y, w, h, r) {
@@ -1693,24 +1703,32 @@
                 isCustom: true,
                 customId: data.id,
                 // O texto do passo vem do usuário (ou de um link importado), então é
-                // escapado antes de entrar no HTML montado por renderRecipeSteps
-                buildSteps: () => data.steps.map(s => ({
-                    time: s.time,
-                    label: escapeHtml(s.desc),
-                    to: fracaoDaAgua(s.amount / data.refWater)
-                }))
+                // escapado antes de entrar no HTML montado por renderRecipeSteps.
+                // Passo sem meta em gramas vira instrução pura (ex: "aguarde a drenagem"),
+                // sem despejo nem alvo.
+                buildSteps: () => data.steps.map(s => (
+                    temMeta(s.amount)
+                        ? { time: s.time, label: escapeHtml(s.desc), to: fracaoDaAgua(s.amount / data.refWater) }
+                        : { time: s.time, desc: escapeHtml(s.desc) }
+                ))
             };
         }
 
+        // A meta em gramas é opcional: um passo sem ela é só uma instrução no tempo certo
+        function temMeta(amount) {
+            return typeof amount === 'number' && isFinite(amount) && amount > 0;
+        }
+
         // Passos passaram a guardar a quantidade absoluta em gramas (exata) em vez de um
-        // percentual arredondado. Converte o formato antigo já salvo no localStorage.
+        // percentual arredondado. Converte o formato antigo já salvo no localStorage,
+        // preservando os passos sem meta (que valiam pct: null).
         function normalizeCustomRecipe(data) {
             if (!data || !Array.isArray(data.steps)) return data;
-            data.steps = data.steps.map(s => (
-                s.amount === undefined && s.pct !== undefined
-                    ? { time: s.time, amount: s.pct * data.refWater, desc: s.desc }
-                    : s
-            ));
+            data.steps = data.steps.map(s => {
+                if (s.amount !== undefined) return s;
+                const convertido = temMeta(s.pct) ? s.pct * data.refWater : null;
+                return { time: s.time, amount: convertido, desc: s.desc };
+            });
             return data;
         }
 
@@ -1743,7 +1761,7 @@
             grid.style.gap = '8px';
             grid.style.marginBottom = '8px';
             grid.appendChild(criarCampo('step-time-input', 'text', 'Tempo (0:45)', time));
-            grid.appendChild(criarCampo('step-amount-input', 'number', 'Meta (g)', amount));
+            grid.appendChild(criarCampo('step-amount-input', 'number', 'Meta (g) — opcional', amount));
             row.appendChild(grid);
 
             row.appendChild(criarCampo('step-desc-input', 'text', 'Descrição (ex: Bloom, despejo circular)', desc));
@@ -1768,7 +1786,7 @@
                 document.getElementById('custom-ref-water').value = editData.refWater;
                 document.getElementById('custom-clicks').value = editData.clicksDefault;
                 document.getElementById('custom-temp').value = editData.tempC;
-                editData.steps.forEach(s => addCustomStepRow(s.time, Math.round(s.amount), s.desc));
+                editData.steps.forEach(s => addCustomStepRow(s.time, temMeta(s.amount) ? Math.round(s.amount) : '', s.desc));
             } else {
                 const refWater = parseFloat(document.getElementById('water').value) || 500;
                 document.getElementById('custom-name').value = '';
@@ -1822,20 +1840,37 @@
             const steps = [];
             for (const row of rows) {
                 const time = row.querySelector('.step-time-input').value.trim();
-                const amount = parseFloat(row.querySelector('.step-amount-input').value);
+                const metaBruta = row.querySelector('.step-amount-input').value.trim();
                 const desc = row.querySelector('.step-desc-input').value.trim();
                 if (!/^\d{1,2}:\d{2}$/.test(time)) { showBuilderError(`Tempo inválido: "${time}". Use o formato m:ss, ex: 0:45.`); return; }
-                if (!amount || amount <= 0) { showBuilderError('Cada passo precisa de uma meta em gramas maior que zero.'); return; }
                 if (!desc) { showBuilderError('Cada passo precisa de uma descrição curta.'); return; }
+
+                // Meta em branco = passo só de instrução, sem despejo (ex: "aguarde a
+                // drenagem", "mexa a crosta"). Se informada, precisa ser positiva.
+                let amount = null;
+                if (metaBruta !== '') {
+                    amount = parseFloat(metaBruta);
+                    if (!temMeta(amount)) {
+                        showBuilderError('Se informar uma meta, ela precisa ser maior que zero — ou deixe em branco para um passo só de instrução.');
+                        return;
+                    }
+                }
                 // Guardado em gramas absolutos: um percentual arredondado perdia precisão
                 // justamente ao reescalar a receita para outro volume
                 steps.push({ time, amount, desc });
             }
 
-            // Os alvos são acumulados na balança, então precisam ser crescentes
-            for (let i = 1; i < steps.length; i += 1) {
-                if (steps[i].amount < steps[i - 1].amount) {
-                    showBuilderError(`As metas são o total acumulado na balança, então precisam crescer. O passo ${i + 1} (${steps[i].amount}g) é menor que o anterior (${steps[i - 1].amount}g).`);
+            if (!steps.some(s => temMeta(s.amount))) {
+                showBuilderError('Pelo menos um passo precisa de uma meta em gramas, senão a receita não tem o que despejar.');
+                return;
+            }
+
+            // Os alvos são acumulados na balança, então precisam ser crescentes.
+            // Passos sem meta são ignorados aqui: não movem a balança.
+            const comMeta = steps.filter(s => temMeta(s.amount));
+            for (let i = 1; i < comMeta.length; i += 1) {
+                if (comMeta[i].amount < comMeta[i - 1].amount) {
+                    showBuilderError(`As metas são o total acumulado na balança, então precisam crescer. Uma meta de ${comMeta[i].amount}g vem depois de ${comMeta[i - 1].amount}g.`);
                     return;
                 }
             }
@@ -3084,7 +3119,7 @@
             };
             if (ehAndroid()) return {
                 titulo: 'Instalar no Android',
-                texto: 'Abra o menu <b>⋮</b> do navegador e escolha <b>“Instalar app”</b> — em alguns aparelhos aparece como <b>“Adicionar à tela inicial”</b>.'
+                texto: 'Procure <b>“Instalar app”</b> ou <b>“Adicionar à tela inicial”</b> no menu <b>⋮</b> do navegador.<br><br>Se não aparecer, o navegador ainda não reconheceu o app — <b>recarregue a página</b> e tente de novo. Alguns navegadores só oferecem a instalação a partir da segunda visita.'
             };
             return {
                 titulo: 'Instalar no computador',
@@ -3098,7 +3133,9 @@
         }
 
         window.addEventListener('beforeinstallprompt', e => {
-            e.preventDefault(); // troca o banner automático do Chrome pelo nosso botão
+            // Deliberadamente SEM preventDefault: suprimir a barrinha nativa do Chrome no
+            // Android saía caro quando o evento não chegava — o usuário ficava sem a
+            // oferta do navegador e sem a nossa. Melhor ter os dois caminhos.
             promptInstalacao = e;
             if (!appJaInstalado()) mostrarBotaoInstalar(true);
         });

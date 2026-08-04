@@ -70,7 +70,7 @@ document.getElementById('app').addEventListener('load', () => {
     const g = expr => w.eval(expr);
     let API;
     try {
-        API = g('({ renderRecipeSteps, formatRatio, clampToInput, getRecipeTemp, deviceData, escapeHtml, clicksToGrindLevel, parseTimeToSeconds, formatTime, decodeRecipeFromParam, buildRecipeShareUrl, toBase64Url, normalizeCustomRecipe })');
+        API = g('({ renderRecipeSteps, formatRatio, clampToInput, getRecipeTemp, deviceData, escapeHtml, clicksToGrindLevel, parseTimeToSeconds, formatTime, decodeRecipeFromParam, buildRecipeShareUrl, toBase64Url, normalizeCustomRecipe, generateRecipeQR, temMeta, buildCustomRecipeObject })');
     } catch (e) {
         document.getElementById('placar').className = 'vermelho';
         document.getElementById('placar').textContent = 'Não consegui acessar o index.html no iframe: ' + e.message + ' — sirva por http(s), não por file://';
@@ -239,6 +239,60 @@ function rodar(A) {
     {
         const novo = A.normalizeCustomRecipe({ refWater: 320, steps: [{ time: '0:00', pct: 0.15625, desc: 'Bloom' }] });
         t('pct vira gramas absolutos', novo.steps[0].amount === 50, String(novo.steps[0].amount));
+    }
+
+    grupo('Meta em gramas é opcional no passo customizado');
+    {
+        // Regressão: o commit 2c4d23a reverteu em silêncio a meta opcional, exigindo
+        // gramas em todo passo — inclusive nos que são só instrução ("aguarde a drenagem").
+        t('temMeta aceita número positivo', A.temMeta(50) === true);
+        t('temMeta rejeita null', A.temMeta(null) === false);
+        t('temMeta rejeita zero', A.temMeta(0) === false);
+        t('temMeta rejeita texto', A.temMeta('50') === false);
+
+        const receita = {
+            id: 'x', device: 'v60', name: 'Com instrução', refCoffee: 20, refWater: 320,
+            clicksDefault: 18, tempC: 93,
+            steps: [{ time: '0:00', amount: 50, desc: 'Bloom' },
+                    { time: '0:45', amount: 320, desc: 'Despejo final' },
+                    { time: '2:00', amount: null, desc: 'Aguarde a drenagem' }]
+        };
+        const obj = A.buildCustomRecipeObject(receita);
+        const passos = A.renderRecipeSteps(obj.buildSteps(20, 320), 20, 320);
+        t('passo sem meta não vira despejo', passos[2].pour === undefined, JSON.stringify(passos[2]));
+        t('passo sem meta mantém a descrição', /Aguarde a drenagem/.test(passos[2].desc), passos[2].desc);
+        t('passos com meta seguem somando o alvo',
+            passos[0].pour + passos[1].pour === passos[1].target,
+            `${passos[0].pour}+${passos[1].pour} vs ${passos[1].target}`);
+
+        // Migração do formato antigo: pct null virava meta obrigatória
+        const migrado = A.normalizeCustomRecipe({
+            refWater: 320,
+            steps: [{ time: '0:00', pct: 0.15625, desc: 'Bloom' }, { time: '2:00', pct: null, desc: 'Aguarde' }]
+        });
+        t('migração preserva passo sem meta', migrado.steps[1].amount === null, String(migrado.steps[1].amount));
+        t('migração converte passo com meta', migrado.steps[0].amount === 50, String(migrado.steps[0].amount));
+    }
+
+    grupo('QR comporta receitas de tamanho realista');
+    {
+        // Regressão: o gerador parava na versão 10 (271 bytes) e falhava a partir de
+        // 4 passos — ou seja, em qualquer receita de verdade.
+        const receita = n => ({
+            id: 'x', device: 'v60', name: 'Receita de domingo de manhã', refCoffee: 20, refWater: 320,
+            clicksDefault: 18, tempC: 93,
+            steps: Array.from({ length: n }, (_, i) => ({
+                time: `${i}:00`, amount: 50 + i * 45, desc: `Despejo número ${i + 1} em espiral`
+            }))
+        });
+        for (const n of [3, 4, 6, 8]) {
+            const { url } = A.buildRecipeShareUrl(receita(n));
+            t(`receita de ${n} passos gera QR (${url.length} bytes)`, !!A.generateRecipeQR(url));
+        }
+        // Ida e volta pelo link continua exata
+        const { url } = A.buildRecipeShareUrl(receita(6));
+        const volta = A.decodeRecipeFromParam(url.split('#r=')[1]);
+        t('receita de 6 passos volta íntegra do link', volta.steps.length === 6 && volta.steps[0].amount === 50);
     }
 
     grupo('Helpers de tempo e moagem');
