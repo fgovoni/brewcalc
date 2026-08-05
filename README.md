@@ -44,7 +44,7 @@ Nenhuma biblioteca, CDN ou fonte remota — e **nenhuma etapa de build**: os mó
 | `js/compartilhar.js` | Link com a receita embutida no endereço, e o QR correspondente. |
 | `js/receitas-custom.js` | Construtor, validação e persistência das receitas do usuário. |
 | `js/avaliacao.js` | Os sete atributos de prova e seus sliders. |
-| `js/instalacao.js` | Tema claro/escuro e convite de instalação. |
+| `js/tema.js` | Tema claro/escuro. |
 | `js/qr.js` | Gerador de QR vendorizado. Tratar como dependência: trocar o bloco inteiro. |
 
 O único recurso externo é o script de contagem de acessos do [GoatCounter](https://www.goatcounter.com/) — sem cookies e sem dados pessoais. Ele é assíncrono, então o app funciona normalmente se for bloqueado ou falhar; para desligar a analytics, basta remover aquela linha do `<head>`. Fora essa chamada, a página não faz nenhuma requisição depois de carregada.
@@ -67,7 +67,7 @@ A atualização é automática: quando há rede, o app busca sempre a versão pu
 
 ## 🧪 Testes
 
-`tests.html` roda no navegador, sem build nem dependências — sirva a pasta e abra o arquivo. São 788 testes em duas camadas:
+`tests.html` roda no navegador, sem build nem dependências — sirva a pasta e abra o arquivo. São 870 testes em duas camadas:
 
 - **Lógica pura**, importada direto dos módulos: a soma dos despejos fechando no alvo em todas as receitas e volumes, o arredondamento da proporção, a escala das doses, a ida e volta do link de compartilhamento e a rejeição de payloads de importação malformados.
 - **Tela**, contra o `index.html` real num iframe: que todo `data-acao` declarado no HTML resolve para uma função (e o inverso, que não há ação órfã no mapa), que um clique de verdade atravessa a delegação e chega ao efeito esperado, e a regressão da dose original do autor ao trocar de aparelho.

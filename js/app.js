@@ -32,7 +32,7 @@ import {
 } from './estado.js';
 import { ratingLabels, buildRatingSliders, onRatingInput, getRatings } from './avaliacao.js';
 import { drawRadarChart, generateShareImage, downloadShareImage, shareImage } from './cartao.js';
-import { toggleTheme, syncThemeToggleIcon, onInstallClick, fecharAjudaInstalacao } from './instalacao.js';
+import { toggleTheme, syncThemeToggleIcon } from './tema.js';
 
 
 
@@ -646,7 +646,6 @@ function confirmImport() {
 // que nascem de template string e antes precisavam carregar o handler embutido.
 const ACOES = {
     // Cabeçalho e abas
-    instalar: () => onInstallClick(),
     alternarTema: () => toggleTheme(),
     abaCalculadora: () => switchTab('calc'),
     abaAvaliacao: () => switchTab('review'),
@@ -706,7 +705,6 @@ const ACOES = {
     gerarImagem: () => generateShareImage(),
     baixarImagem: () => downloadShareImage(),
     compartilharImagem: () => shareImage(),
-    fecharAjudaInstalacao: () => fecharAjudaInstalacao(),
     ignorarImportacao: () => dismissImport(),
     confirmarImportacao: () => confirmImport(),
 };
@@ -761,3 +759,9 @@ loadCustomRecipes();
 loadSettings();
 update('load');
 checkImportFromUrl();
+
+// A URL do QR muda só o fragmento (#r=...). Se o app já estiver aberto na aba que
+// o navegador reaproveita — o caso comum no Android, em que o leitor de QR manda o
+// link para uma aba existente — a página NÃO recarrega, e a importação, que só
+// rodava na inicialização, nunca acontecia: o app abria e ignorava a receita.
+window.addEventListener('hashchange', checkImportFromUrl);

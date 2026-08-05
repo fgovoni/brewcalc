@@ -93,8 +93,6 @@ body {
     transition: background-color .2s ease, border-color .2s ease;
 }
 .theme-toggle:hover { background: var(--field); }
-.install-btn { border-color: var(--blue); color: var(--blue-light); }
-.install-btn svg { width: 19px; height: 19px; }
 .icon-badge { background: var(--blue); padding: 8px; border-radius: 50%; line-height: 0; flex-shrink: 0; }
 .icon-badge svg { width: 24px; height: 24px; color: #fff; }
 h1 {

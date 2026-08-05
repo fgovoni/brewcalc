@@ -526,6 +526,45 @@ async function rodar(A) {
         frame.remove();
     }
 
+    grupo('Receber o link com o app já aberto');
+    {
+        // O caso que quebrou no celular: o leitor de QR manda o link para a aba onde o
+        // app já está, e trocar só o fragmento não recarrega a página. Sem reagir ao
+        // hashchange o app abria e ignorava a receita — que foi exatamente o relato.
+        const receita = {
+            id: 'teste-hash-' + Date.now(), device: 'v60', name: 'Chegou por hashchange',
+            refCoffee: 20, refWater: 320, clicksDefault: 18, tempC: 93,
+            steps: [{ time: '0:00', amount: 50, desc: 'Bloom' },
+                    { time: '0:45', amount: 320, desc: 'Final' }],
+        };
+        const { param } = A.buildRecipeShareUrl(receita);
+
+        // Instância já carregada, SEM hash — e só depois o link chega
+        const frame = await carregarApp('index.html');
+        const d = frame.contentDocument, w = frame.contentWindow;
+        t('começa sem diálogo de importação',
+            d.getElementById('import-overlay').classList.contains('hidden'));
+
+        w.location.hash = 'r=' + param;
+        await esperar(50);
+
+        t('o app reage ao link sem recarregar',
+            !d.getElementById('import-overlay').classList.contains('hidden'));
+        t('a confirmação mostra a receita certa',
+            d.getElementById('import-recipe-desc').textContent.includes('Chegou por hashchange'),
+            d.getElementById('import-recipe-desc').textContent);
+
+        d.querySelector('[data-acao="confirmarImportacao"]')
+            .dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+        t('a receita entra no seletor',
+            Array.from(d.getElementById('recipe').options).some(o => o.textContent.includes('Chegou por hashchange')));
+
+        w.confirm = () => true;
+        d.querySelector('[data-acao="excluirReceita"]')
+            .dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+        frame.remove();
+    }
+
     grupo('Ignorar a importação não grava nada');
     {
         const receita = {
